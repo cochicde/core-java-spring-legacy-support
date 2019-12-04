@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<parent>
+		<groupId>org.springframework.boot</groupId>
+		<artifactId>spring-boot-starter-parent</artifactId>
+		<version>2.1.5.RELEASE</version>
+		<relativePath/> <!-- lookup parent from repository -->
+	</parent>
+	<groupId>eu.arrowhead</groupId>
+	<artifactId>legacy-core</artifactId>
+	<version>${revision}</version>
+	<packaging>pom</packaging>
+	<name>core-java-spring-legacy-support</name>
+	<description>Support systems to use 4.1.2 minimal API in the 4.1.3 framework </description>
+
+	<url>https://github.com/arrowhead-f/core-java-spring-legacy-support</url>
+  	
+  	<modules>
+	    <module>legacy-common</module>
+	    <module>legacy-sr-translator</module>
+		<module>legacy-orch-translator</module>
+  	</modules>
+  	
+	<properties>
+		<base.version>4.1.3</base.version>
+		<revision>${base.version}</revision>
+		<java.version>11</java.version>
+		<mvn.clean.version>3.1.0</mvn.clean.version>
+		<mvn.compiler.version>3.8.1</mvn.compiler.version>
+		<mvn.compile.target>11</mvn.compile.target>
+		<mvn.dependency.version>3.1.1</mvn.dependency.version>
+	    <mvn.jar.version>3.1.2</mvn.jar.version>
+	    <mvn.resources.version>3.1.0</mvn.resources.version>
+		<http.client.version>4.5.8</http.client.version>
+		<core.client.skeleton.version>4.1.3.2</core.client.skeleton.version>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+	</properties>
+	
+	<repositories>
+		<repository>
+			<id>arrowhead-client</id>
+			<url>https://github.com/arrowhead-f/client-library-java-spring/raw/master/client-mvn-repo</url>
+		</repository>
+	</repositories>
+
+	<dependencies>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter</artifactId>
+			<exclusions>
+				<exclusion>
+					<groupId>org.springframework.boot</groupId>
+					<artifactId>spring-boot-starter-logging</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-log4j2</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-integration</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-security</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-web</artifactId>
+		</dependency>
+		<dependency>
+		    <groupId>org.springframework.boot</groupId>
+    		<artifactId>spring-boot-configuration-processor</artifactId>
+    		<optional>true</optional>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.security</groupId>
+			<artifactId>spring-security-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>eu.arrowhead</groupId>
+			<artifactId>core-client-skeleton</artifactId>
+			<version>${core.client.skeleton.version}</version>
+		</dependency>
+		<dependency>
+           <groupId>org.apache.httpcomponents</groupId>
+           <artifactId>httpclient</artifactId>
+           <version>${http.client.version}</version>
+        </dependency>
+	</dependencies>
+
+	<build>
+		<defaultGoal>clean install</defaultGoal>
+		<plugins>
+			<plugin>
+				<groupId>org.springframework.boot</groupId>
+				<artifactId>spring-boot-maven-plugin</artifactId>
+			</plugin>
+			
+	      	<plugin>
+	        	<artifactId>maven-compiler-plugin</artifactId>
+	        	<version>${mvn.compiler.version}</version>
+	        	<configuration>
+	        		<source>${mvn.compile.target}</source>
+	         		<target>${mvn.compile.target}</target>
+	        	</configuration>
+	      	</plugin>
+		</plugins>
+	</build>
+</project>
