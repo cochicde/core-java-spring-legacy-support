@@ -15,6 +15,8 @@ public class LegacyCommonConstants {
 	public static final String $DOMAIN_PORT = "${" + DOMAIN_PORT + ":0}";
 	
 	public static final long CONVERSION_MILLISECOND_TO_SECOND = 1000;
+	
+	public static final String KEY_SECURITY = "security";
 
 	//=================================================================================================
 	// assistant methods
