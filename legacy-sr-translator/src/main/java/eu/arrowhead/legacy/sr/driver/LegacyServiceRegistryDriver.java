@@ -1,5 +1,6 @@
 package eu.arrowhead.legacy.sr.driver;
 
+import java.util.HashMap;
 import java.util.List;
 
 import org.apache.http.HttpStatus;
@@ -16,10 +17,12 @@ import eu.arrowhead.common.CommonConstants;
 import eu.arrowhead.common.Utilities;
 import eu.arrowhead.common.dto.shared.ServiceQueryFormDTO;
 import eu.arrowhead.common.dto.shared.ServiceQueryResultDTO;
+import eu.arrowhead.common.dto.shared.ServiceRegistryRequestDTO;
 import eu.arrowhead.common.dto.shared.ServiceRegistryResponseDTO;
 import eu.arrowhead.common.dto.shared.SystemResponseDTO;
 import eu.arrowhead.common.exception.BadPayloadException;
 import eu.arrowhead.common.http.HttpService;
+import eu.arrowhead.legacy.common.LegacyCommonConstants;
 import eu.arrowhead.legacy.common.LegacySystemRegistrationProperties;
 import eu.arrowhead.legacy.common.model.LegacyArrowheadSystem;
 import eu.arrowhead.legacy.common.model.LegacyServiceRegistryEntry;
@@ -93,6 +96,34 @@ public class LegacyServiceRegistryDriver {
 		
 		return null;
 	}
+	
+	//-------------------------------------------------------------------------------------------------
+	public ResponseEntity<ServiceRegistryResponseDTO> registerService413(final ServiceRegistryRequestDTO request) {
+		final UriComponents uri = createRegisterUri();
+		
+		if (request.getMetadata() == null) {
+			request.setMetadata(new HashMap<>());
+		} 
+		request.getMetadata().put(LegacyCommonConstants.KEY_ARROWHEAD_VERSION, LegacyCommonConstants.ARROWHEAD_VERSION_VALUE_413);
+		
+		return httpService.sendRequest(uri, HttpMethod.POST, ServiceRegistryResponseDTO.class, request);
+	}
+	
+	//-------------------------------------------------------------------------------------------------
+	public ResponseEntity<?> registerService412(final LegacyServiceRegistryEntry request) {
+		final String origin = CommonConstants.SERVICE_REGISTRY_URI + CommonConstants.OP_SERVICE_REGISTRY_REGISTER_URI;
+		
+		if (request.getProvidedService() == null) {
+			throw new BadPayloadException("Provided ArrowheadService cannot be null", HttpStatus.SC_BAD_REQUEST, origin);
+		}
+		
+		if (request.getProvider() == null) {
+			throw new BadPayloadException("Provider ArrowheadSystem cannot be null", HttpStatus.SC_BAD_REQUEST, origin);
+		}
+		
+		//TODO: continue
+		return null;
+	}
 
 	//=================================================================================================
 	// assistant methods
@@ -114,6 +145,14 @@ public class LegacyServiceRegistryDriver {
 	private UriComponents createQueryUri() {
 		final String scheme = sslEnabled ? CommonConstants.HTTPS : CommonConstants.HTTP;
 		final String queryUriStr = CommonConstants.SERVICE_REGISTRY_URI + CommonConstants.OP_SERVICE_REGISTRY_QUERY_URI;
+		
+		return Utilities.createURI(scheme, systemRegistrationProperties.getServiceRegistryAddress(), systemRegistrationProperties.getServiceRegistryPort(), queryUriStr);
+	}
+	
+	//-------------------------------------------------------------------------------------------------
+	private UriComponents createRegisterUri() {
+		final String scheme = sslEnabled ? CommonConstants.HTTPS : CommonConstants.HTTP;
+		final String queryUriStr = CommonConstants.SERVICE_REGISTRY_URI + CommonConstants.OP_SERVICE_REGISTRY_REGISTER_URI;
 		
 		return Utilities.createURI(scheme, systemRegistrationProperties.getServiceRegistryAddress(), systemRegistrationProperties.getServiceRegistryPort(), queryUriStr);
 	}

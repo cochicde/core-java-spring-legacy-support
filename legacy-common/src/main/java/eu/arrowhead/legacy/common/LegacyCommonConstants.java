@@ -17,6 +17,10 @@ public class LegacyCommonConstants {
 	public static final long CONVERSION_MILLISECOND_TO_SECOND = 1000;
 	
 	public static final String KEY_SECURITY = "security";
+	public static final String KEY_ARROWHEAD_VERSION = "arrowhead.version";
+	public static final String SECURITY_VALUE_TOKEN = "token";
+	public static final String ARROWHEAD_VERSION_VALUE_412 = "412";
+	public static final String ARROWHEAD_VERSION_VALUE_413 = "413";
 
 	//=================================================================================================
 	// assistant methods
