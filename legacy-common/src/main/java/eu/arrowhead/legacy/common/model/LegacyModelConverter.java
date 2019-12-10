@@ -3,12 +3,16 @@ package eu.arrowhead.legacy.common.model;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import eu.arrowhead.common.Utilities;
+import eu.arrowhead.common.dto.shared.ServiceQueryFormDTO;
+import eu.arrowhead.common.dto.shared.ServiceQueryResultDTO;
 import eu.arrowhead.common.dto.shared.ServiceRegistryRequestDTO;
 import eu.arrowhead.common.dto.shared.ServiceRegistryResponseDTO;
 import eu.arrowhead.common.dto.shared.ServiceSecurityType;
@@ -25,7 +29,11 @@ public class LegacyModelConverter {
 		final LegacyArrowheadService providedService = new LegacyArrowheadService();
 		providedService.setId(dto.getServiceDefinition().getId());
 		providedService.setServiceDefinition(dto.getServiceDefinition().getServiceDefinition());
-		providedService.setInterfaces(Set.of(dto.getMetadata().get(LegacyCommonConstants.KEY_LEGACY_INTERFACE)));
+		if (dto.getMetadata().containsKey(LegacyCommonConstants.KEY_LEGACY_INTERFACE)) {
+			providedService.setInterfaces(Set.of(dto.getMetadata().get(LegacyCommonConstants.KEY_LEGACY_INTERFACE)));
+		} else {
+			providedService.setInterfaces(dto.getInterfaces().stream().map(e -> e.getInterfaceName()).collect(Collectors.toSet()));
+		}
 		providedService.setServiceMetadata(dto.getMetadata());
 		providedService.getServiceMetadata().put(LegacyCommonConstants.KEY_SECURITY, dto.getSecure().name());
 		providedService.getServiceMetadata().remove(LegacyCommonConstants.KEY_LEGACY_INTERFACE);
@@ -76,6 +84,63 @@ public class LegacyModelConverter {
 		dto.setEndOfValidity(entry.getEndOfValidity() == null ? null : convertEndOfValidityToUTCString(entry.getEndOfValidity()));
 		
 		return dto;
+	}
+	
+	//-------------------------------------------------------------------------------------------------
+	public static ServiceQueryFormDTO convertLegacyServiceQueryFormToServiceQueryFormDTO(final LegacyServiceQueryFrom form) {
+		
+		final Map<String,String> metadata = form.getService().getServiceMetadata();
+		final ServiceQueryFormDTO.Builder builder = new ServiceQueryFormDTO.Builder(form.getService().getServiceDefinition())
+															   	   .interfaces(form.getService().getInterfaces().toArray(new String[0]))
+															   	   .version(form.getVersion())
+															   	   .pingProviders(form.isPingProviders());
+		if (metadata.containsKey(LegacyCommonConstants.KEY_SECURITY)) {
+			builder.security(metadata.get(LegacyCommonConstants.KEY_SECURITY).equalsIgnoreCase(LegacyCommonConstants.SECURITY_VALUE_TOKEN) ? 
+							 ServiceSecurityType.TOKEN : ServiceSecurityType.CERTIFICATE);
+			metadata.remove(LegacyCommonConstants.KEY_SECURITY);
+		}
+		
+		if (metadata.containsKey(LegacyCommonConstants.KEY_MIN_VERSION) || metadata.containsKey(LegacyCommonConstants.KEY_MAX_VERSION)) {
+			final String minVersionStr = metadata.get(LegacyCommonConstants.KEY_MIN_VERSION);
+			final String maxVersionStr = metadata.get(LegacyCommonConstants.KEY_MAX_VERSION);
+			
+			Integer minVersion = null, maxVersion = null;
+			try {
+				minVersion = Utilities.isEmpty(minVersionStr) ? null : Integer.parseInt(minVersionStr);
+			} catch (final NumberFormatException ex) {
+				// intentionally ignored
+			}
+			
+			try {
+				maxVersion = Utilities.isEmpty(maxVersionStr) ? null : Integer.parseInt(maxVersionStr);
+			} catch (final NumberFormatException ex) {
+				// intentionally ignored
+			}
+
+			builder.version(minVersion, maxVersion);
+			metadata.remove(LegacyCommonConstants.KEY_MIN_VERSION);
+			metadata.remove(LegacyCommonConstants.KEY_MAX_VERSION);
+			
+			if (metadata.size() > 0) {
+				builder.metadata(metadata);
+			}
+		}
+		
+		return builder.build();
+	}
+	
+	//-------------------------------------------------------------------------------------------------
+	public static LegacyServiceQueryResult convertServiceQueryResultDTOToLegacyServiceQueryResult(final ServiceQueryResultDTO dto) {
+		final LegacyServiceQueryResult result = new LegacyServiceQueryResult();
+		final List<LegacyServiceRegistryEntry> resultList = new ArrayList<LegacyServiceRegistryEntry>(dto.getServiceQueryData().size());
+		
+		for (final ServiceRegistryResponseDTO srDTO : dto.getServiceQueryData()) {
+			resultList.add(convertServiceRegistryResponseDTOToLegacyServiceRegistryEntry(srDTO));
+		}
+		
+		result.setServiceQueryData(resultList);
+		
+		return result;
 	}
 	
 	//=================================================================================================

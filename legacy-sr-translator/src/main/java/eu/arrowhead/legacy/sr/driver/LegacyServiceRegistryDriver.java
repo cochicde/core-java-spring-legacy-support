@@ -28,6 +28,8 @@ import eu.arrowhead.legacy.common.LegacyCommonConstants;
 import eu.arrowhead.legacy.common.LegacySystemRegistrationProperties;
 import eu.arrowhead.legacy.common.model.LegacyArrowheadSystem;
 import eu.arrowhead.legacy.common.model.LegacyModelConverter;
+import eu.arrowhead.legacy.common.model.LegacyServiceQueryFrom;
+import eu.arrowhead.legacy.common.model.LegacyServiceQueryResult;
 import eu.arrowhead.legacy.common.model.LegacyServiceRegistryEntry;
 
 @Service
@@ -172,6 +174,30 @@ public class LegacyServiceRegistryDriver {
 				throw ex;
 			}
 		}
+	}
+	
+	//-------------------------------------------------------------------------------------------------
+	public ServiceQueryResultDTO queryRegistry413(final ServiceQueryFormDTO form) {
+		final UriComponents uri = createQueryUri();
+		final ResponseEntity<ServiceQueryResultDTO> response = httpService.sendRequest(uri, HttpMethod.POST, ServiceQueryResultDTO.class, form);
+		
+		return response.getBody();
+	}
+	
+	//-------------------------------------------------------------------------------------------------
+	public LegacyServiceQueryResult queryRegistry412(final LegacyServiceQueryFrom form) {
+		final String origin = CommonConstants.SERVICE_REGISTRY_URI + CommonConstants.OP_SERVICE_REGISTRY_QUERY_URI;
+		
+		if (form.getService() == null) {
+			throw new BadPayloadException("Provided ArrowheadService cannot be null", HttpStatus.SC_BAD_REQUEST, origin);
+		}
+		
+		final UriComponents uri = createQueryUri();
+		final ServiceQueryFormDTO convertedForm = LegacyModelConverter.convertLegacyServiceQueryFormToServiceQueryFormDTO(form);
+		final ResponseEntity<ServiceQueryResultDTO> responseEntity = httpService.sendRequest(uri, HttpMethod.POST, ServiceQueryResultDTO.class, convertedForm);
+		final LegacyServiceQueryResult response = LegacyModelConverter.convertServiceQueryResultDTOToLegacyServiceQueryResult(responseEntity.getBody());
+		
+		return response;
 	}
 
 	//=================================================================================================

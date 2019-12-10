@@ -13,15 +13,20 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import eu.arrowhead.common.CommonConstants;
 import eu.arrowhead.common.Utilities;
+import eu.arrowhead.common.dto.shared.ServiceQueryFormDTO;
+import eu.arrowhead.common.dto.shared.ServiceQueryResultDTO;
 import eu.arrowhead.common.dto.shared.ServiceRegistryRequestDTO;
 import eu.arrowhead.common.dto.shared.ServiceRegistryResponseDTO;
 import eu.arrowhead.common.exception.ArrowheadException;
 import eu.arrowhead.common.exception.BadPayloadException;
 import eu.arrowhead.legacy.common.model.LegacyModelConverter;
+import eu.arrowhead.legacy.common.model.LegacyServiceQueryFrom;
+import eu.arrowhead.legacy.common.model.LegacyServiceQueryResult;
 import eu.arrowhead.legacy.common.model.LegacyServiceRegistryEntry;
 import eu.arrowhead.legacy.sr.driver.LegacyServiceRegistryDriver;
 
@@ -79,6 +84,18 @@ public class LegacyServiceRegistryController {
 								  @RequestParam(CommonConstants.OP_SERVICE_REGISTRY_UNREGISTER_REQUEST_PARAM_PROVIDER_ADDRESS) final String providerAddress,
 								  @RequestParam(CommonConstants.OP_SERVICE_REGISTRY_UNREGISTER_REQUEST_PARAM_PROVIDER_PORT) final int providerPort) {
 		legacyDriver.removeServiceRegistry413(serviceDefinition, providerName, providerAddress, providerPort);
+	}
+	
+	//-------------------------------------------------------------------------------------------------
+	@PostMapping(path = CommonConstants.OP_SERVICE_REGISTRY_QUERY_URI, consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+	@ResponseBody public ServiceQueryResultDTO queryRegistry413(@RequestBody final ServiceQueryFormDTO form) {
+		return legacyDriver.queryRegistry413(form);
+	}
+	
+	//-------------------------------------------------------------------------------------------------
+	@PutMapping(path = CommonConstants.OP_SERVICE_REGISTRY_QUERY_URI, consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+	@ResponseBody public LegacyServiceQueryResult queryRegistry412(@RequestBody final LegacyServiceQueryFrom form) {
+		return legacyDriver.queryRegistry412(form);
 	}
 	
 	//=================================================================================================
