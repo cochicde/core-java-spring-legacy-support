@@ -18,9 +18,18 @@ public class LegacyCommonConstants {
 	
 	public static final String KEY_SECURITY = "security";
 	public static final String KEY_ARROWHEAD_VERSION = "arrowhead.version";
+	public static final String KEY_LEGACY_INTERFACE = "legacy.intf";
 	public static final String SECURITY_VALUE_TOKEN = "token";
 	public static final String ARROWHEAD_VERSION_VALUE_412 = "412";
 	public static final String ARROWHEAD_VERSION_VALUE_413 = "413";
+	
+	public static final String DEFAULT_INTERFACE = "HTTP-SECURE-JSON";
+	
+	public static final String FIELD_ERROR_MESSAGE = "errorMessage";
+	public static final String FIELD_ERROR_CODE = "errorCode";
+	public static final String FIELD_EXCEPTION_TYPE = "exceptionType";
+	public static final String FIELD_ORIGIN = "origin";
+	public static final String VALUE_DUPLICATE_ENTRY = "DUPLICATE_ENTRY";
 
 	//=================================================================================================
 	// assistant methods

@@ -2,6 +2,7 @@ package eu.arrowhead.legacy.sr.driver;
 
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.http.HttpStatus;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,10 +22,12 @@ import eu.arrowhead.common.dto.shared.ServiceRegistryRequestDTO;
 import eu.arrowhead.common.dto.shared.ServiceRegistryResponseDTO;
 import eu.arrowhead.common.dto.shared.SystemResponseDTO;
 import eu.arrowhead.common.exception.BadPayloadException;
+import eu.arrowhead.common.exception.InvalidParameterException;
 import eu.arrowhead.common.http.HttpService;
 import eu.arrowhead.legacy.common.LegacyCommonConstants;
 import eu.arrowhead.legacy.common.LegacySystemRegistrationProperties;
 import eu.arrowhead.legacy.common.model.LegacyArrowheadSystem;
+import eu.arrowhead.legacy.common.model.LegacyModelConverter;
 import eu.arrowhead.legacy.common.model.LegacyServiceRegistryEntry;
 
 @Service
@@ -99,14 +102,33 @@ public class LegacyServiceRegistryDriver {
 	
 	//-------------------------------------------------------------------------------------------------
 	public ResponseEntity<ServiceRegistryResponseDTO> registerService413(final ServiceRegistryRequestDTO request) {
+		final String origin = CommonConstants.SERVICE_REGISTRY_URI + CommonConstants.OP_SERVICE_REGISTRY_REGISTER_URI;
+
+		if (request.getInterfaces() == null || request.getInterfaces().isEmpty()) {
+			throw new BadPayloadException("Interfaces list is null or empty.", HttpStatus.SC_BAD_REQUEST, origin);
+		}
+
+		if (request.getInterfaces().size() > 1) {
+			throw new BadPayloadException("Translator does not support registrations with multiple interfaces", HttpStatus.SC_BAD_REQUEST, origin);
+		}
+		
 		final UriComponents uri = createRegisterUri();
 		
 		if (request.getMetadata() == null) {
 			request.setMetadata(new HashMap<>());
 		} 
 		request.getMetadata().put(LegacyCommonConstants.KEY_ARROWHEAD_VERSION, LegacyCommonConstants.ARROWHEAD_VERSION_VALUE_413);
+		request.getMetadata().put(LegacyCommonConstants.KEY_LEGACY_INTERFACE, request.getInterfaces().get(0));
+		request.getInterfaces().clear();
+		request.getInterfaces().add(LegacyCommonConstants.DEFAULT_INTERFACE);
 		
-		return httpService.sendRequest(uri, HttpMethod.POST, ServiceRegistryResponseDTO.class, request);
+		final ResponseEntity<ServiceRegistryResponseDTO> response = httpService.sendRequest(uri, HttpMethod.POST, ServiceRegistryResponseDTO.class, request);
+		final ServiceRegistryResponseDTO dto = response.getBody();
+		dto.getInterfaces().get(0).setInterfaceName(dto.getMetadata().get(LegacyCommonConstants.KEY_LEGACY_INTERFACE));
+		dto.getMetadata().remove(LegacyCommonConstants.KEY_LEGACY_INTERFACE);
+		dto.getMetadata().remove(LegacyCommonConstants.KEY_ARROWHEAD_VERSION);
+		
+		return new ResponseEntity<>(dto, org.springframework.http.HttpStatus.CREATED);
 	}
 	
 	//-------------------------------------------------------------------------------------------------
@@ -121,8 +143,35 @@ public class LegacyServiceRegistryDriver {
 			throw new BadPayloadException("Provider ArrowheadSystem cannot be null", HttpStatus.SC_BAD_REQUEST, origin);
 		}
 		
-		//TODO: continue
-		return null;
+		if (request.getProvidedService().getInterfaces() == null || request.getProvidedService().getInterfaces().isEmpty()) {
+			throw new BadPayloadException("Interfaces set is null or empty.", HttpStatus.SC_BAD_REQUEST, origin);
+		}
+
+		if (request.getProvidedService().getInterfaces().size() > 1) {
+			throw new BadPayloadException("Translator does not support registrations with multiple interfaces", HttpStatus.SC_BAD_REQUEST, origin);
+		}
+
+		final UriComponents uri = createRegisterUri();
+		final ServiceRegistryRequestDTO payload = LegacyModelConverter.convertLegacyServiceRegistryEntryToServiceRegistryRequestDTO(request);
+		
+		try {
+			final ResponseEntity<ServiceRegistryResponseDTO> response = httpService.sendRequest(uri, HttpMethod.POST, ServiceRegistryResponseDTO.class, payload);
+			final LegacyServiceRegistryEntry convertedResponsePayload = LegacyModelConverter.convertServiceRegistryResponseDTOToLegacyServiceRegistryEntry(response.getBody());
+			
+			return new ResponseEntity<>(convertedResponsePayload, org.springframework.http.HttpStatus.CREATED);
+		} catch (final InvalidParameterException ex) {
+			if (ex.getMessage().startsWith("Service Registry entry with provider: (") && ex.getMessage().endsWith(" already exists.")) {
+				final Map<String,String> errorPayload = new HashMap<>();
+				errorPayload.put(LegacyCommonConstants.FIELD_ERROR_MESSAGE, ex.getMessage());
+				errorPayload.put(LegacyCommonConstants.FIELD_ERROR_CODE, String.valueOf(HttpStatus.SC_BAD_REQUEST));
+				errorPayload.put(LegacyCommonConstants.FIELD_EXCEPTION_TYPE, LegacyCommonConstants.VALUE_DUPLICATE_ENTRY);
+				errorPayload.put(LegacyCommonConstants.FIELD_ORIGIN, ex.getOrigin());
+				
+				return new ResponseEntity<>(errorPayload, org.springframework.http.HttpStatus.BAD_REQUEST);
+			} else {
+				throw ex;
+			}
+		}
 	}
 
 	//=================================================================================================

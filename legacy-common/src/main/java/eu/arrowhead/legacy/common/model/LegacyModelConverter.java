@@ -1,12 +1,13 @@
 package eu.arrowhead.legacy.common.model;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
+import java.util.Set;
 
-import eu.arrowhead.common.CommonConstants;
 import eu.arrowhead.common.Utilities;
 import eu.arrowhead.common.dto.shared.ServiceRegistryRequestDTO;
 import eu.arrowhead.common.dto.shared.ServiceRegistryResponseDTO;
@@ -24,9 +25,11 @@ public class LegacyModelConverter {
 		final LegacyArrowheadService providedService = new LegacyArrowheadService();
 		providedService.setId(dto.getServiceDefinition().getId());
 		providedService.setServiceDefinition(dto.getServiceDefinition().getServiceDefinition());
-		providedService.setInterfaces(dto.getInterfaces().stream().map(e -> e.getInterfaceName()).collect(Collectors.toSet()));
+		providedService.setInterfaces(Set.of(dto.getMetadata().get(LegacyCommonConstants.KEY_LEGACY_INTERFACE)));
 		providedService.setServiceMetadata(dto.getMetadata());
 		providedService.getServiceMetadata().put(LegacyCommonConstants.KEY_SECURITY, dto.getSecure().name());
+		providedService.getServiceMetadata().remove(LegacyCommonConstants.KEY_LEGACY_INTERFACE);
+		providedService.getServiceMetadata().remove(LegacyCommonConstants.KEY_ARROWHEAD_VERSION);
 		
 		final LegacyArrowheadSystem provider = new LegacyArrowheadSystem();
 		provider.setId(dto.getProvider().getId());
@@ -64,14 +67,13 @@ public class LegacyModelConverter {
 		dto.setServiceDefinition(entry.getProvidedService().getServiceDefinition());
 		dto.setProviderSystem(provider);
 		dto.setServiceUri(entry.getServiceUri());
+		dto.setVersion(entry.getVersion());
 		dto.setSecure(calculateSecurityType(entry.getProvidedService().getServiceMetadata()));
 		entry.getProvidedService().getServiceMetadata().remove(LegacyCommonConstants.KEY_SECURITY);
-		dto.setVersion(entry.getVersion());
+		entry.getProvidedService().getServiceMetadata().put(LegacyCommonConstants.KEY_LEGACY_INTERFACE, entry.getProvidedService().getInterfaces().iterator().next());
+		dto.setInterfaces(List.of(LegacyCommonConstants.DEFAULT_INTERFACE));
 		dto.setMetadata(entry.getProvidedService().getServiceMetadata());
-		
-		//TODO: cont
-		dto.setInterfaces(null);
-		dto.setEndOfValidity(null);
+		dto.setEndOfValidity(entry.getEndOfValidity() == null ? null : convertEndOfValidityToUTCString(entry.getEndOfValidity()));
 		
 		return dto;
 	}
@@ -83,6 +85,12 @@ public class LegacyModelConverter {
 	private static LocalDateTime convertUTCSTringToLocalDateTime(final String utcTime) {
 		final ZonedDateTime zonedDateTime = Utilities.parseUTCStringToLocalZonedDateTime(utcTime);
 		return zonedDateTime.toLocalDateTime(); 
+	}
+	
+	//-------------------------------------------------------------------------------------------------
+	private static String convertEndOfValidityToUTCString(final LocalDateTime localDateTime) {
+		ZonedDateTime zonedDateTime = localDateTime.atZone(ZoneId.systemDefault());
+		return Utilities.convertZonedDateTimeToUTCString(zonedDateTime);
 	}
 	
 	//-------------------------------------------------------------------------------------------------
