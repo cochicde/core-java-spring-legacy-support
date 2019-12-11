@@ -11,7 +11,6 @@ import eu.arrowhead.common.Utilities;
 import eu.arrowhead.common.core.CoreSystem;
 import eu.arrowhead.common.core.CoreSystemService;
 import eu.arrowhead.common.dto.shared.ServiceQueryFormDTO;
-import eu.arrowhead.common.dto.shared.ServiceRegistryRequestDTO;
 import eu.arrowhead.common.exception.AuthException;
 import eu.arrowhead.legacy.common.security.CoreSystemAccessControlFilter;
 
@@ -21,6 +20,13 @@ public class LegacySRAccessControlFilter extends CoreSystemAccessControlFilter {
 	
 	//=================================================================================================
 	// members
+	
+	private static final String REGISTER_INPUT_JSON_KEY_SERVICE_DEFINITION = "serviceDefinition";
+	private static final String REGISTRY_INPUT_JSON_KEY_PROVIDER_SYSTEM = "providerSystem";
+	private static final String REGISTRY_INPUT_JSON_KEY_PROVIDER = "provider";
+	private static final String REGISTRY_INPUT_JSON_KEY_PROVIDER_SYSTEM_NAME = "systemName";
+	
+	private static final String REMOVE_URI = "/remove";
 	
 	private static final CoreSystem[] allowedCoreSystemsForQuery = { CoreSystem.ORCHESTRATOR, CoreSystem.GATEKEEPER, CoreSystem.CERTIFICATE_AUTHORITY, CoreSystem.EVENT_HANDLER,
 																	 CoreSystem.AUTHORIZATION };
@@ -35,7 +41,7 @@ public class LegacySRAccessControlFilter extends CoreSystemAccessControlFilter {
 		
 		final String cloudCN = getServerCloudCN();
 		
-		if (requestTarget.endsWith(CommonConstants.OP_SERVICE_REGISTRY_REGISTER_URI)) {
+		if (requestTarget.endsWith(CommonConstants.OP_SERVICE_REGISTRY_REGISTER_URI) || requestTarget.endsWith(REMOVE_URI)) {
 			// A provider system can only register its own services!
 			checkProviderAccessToRegister(clientCN, requestJSON, requestTarget);
 		} else if (requestTarget.endsWith(CommonConstants.OP_SERVICE_REGISTRY_UNREGISTER_URI)) {
@@ -53,10 +59,11 @@ public class LegacySRAccessControlFilter extends CoreSystemAccessControlFilter {
 	}
 
 	//-------------------------------------------------------------------------------------------------
+	@SuppressWarnings("unchecked")
 	private void checkProviderAccessToRegister(final String clientCN, final String requestJSON, final String requestTarget) {
 		final String clientName = getClientNameFromCN(clientCN);
-		final ServiceRegistryRequestDTO requestBody = Utilities.fromJson(requestJSON, ServiceRegistryRequestDTO.class);
-		final String providerName = requestBody.getProviderSystem() != null ? requestBody.getProviderSystem().getSystemName() : "";
+		final Map<String,Object> requestBody = Utilities.fromJson(requestJSON, Map.class);
+		final String providerName = acquireProviderName(requestBody);
 		if (Utilities.isEmpty(providerName)) {
 			log.debug("Provider name is not set in the body when use {}", requestTarget);
 			return; // we can't continue the check and the endpoint will throw BadPayloadException
@@ -65,6 +72,18 @@ public class LegacySRAccessControlFilter extends CoreSystemAccessControlFilter {
 		if (!providerName.equalsIgnoreCase(clientName) && !providerName.replaceAll("_", "").equalsIgnoreCase(clientName)) {
 			log.debug("Provider system name and certificate common name do not match! Registering denied!");
 			throw new AuthException("Provider system name(" + providerName + ") and certificate common name (" + clientCN + ") do not match!", HttpStatus.UNAUTHORIZED.value());
+		}
+	}
+
+	//-------------------------------------------------------------------------------------------------
+	@SuppressWarnings({ "unchecked", "rawtypes" })
+	private String acquireProviderName(final Map<String,Object> requestBody) {
+		if (requestBody.containsKey(REGISTER_INPUT_JSON_KEY_SERVICE_DEFINITION)) {
+			final Map<String,Object> system = (Map) requestBody.get(REGISTRY_INPUT_JSON_KEY_PROVIDER_SYSTEM);
+			return system != null ? (String) system.get(REGISTRY_INPUT_JSON_KEY_PROVIDER_SYSTEM_NAME) : null;
+		} else {
+			final Map<String,Object> system = (Map) requestBody.get(REGISTRY_INPUT_JSON_KEY_PROVIDER);
+			return system != null ? (String) system.get(REGISTRY_INPUT_JSON_KEY_PROVIDER_SYSTEM_NAME) : null;
 		}
 	}
 
