@@ -91,9 +91,8 @@ public class LegacyModelConverter {
 		
 		final Map<String,String> metadata = form.getService().getServiceMetadata();
 		final ServiceQueryFormDTO.Builder builder = new ServiceQueryFormDTO.Builder(form.getService().getServiceDefinition())
-															   	   .interfaces(form.getService().getInterfaces().toArray(new String[0]))
-															   	   .version(form.getVersion())
-															   	   .pingProviders(form.isPingProviders());
+															   	   		   .version(form.getVersion())
+															   	   		   .pingProviders(form.isPingProviders());
 		if (metadata.containsKey(LegacyCommonConstants.KEY_SECURITY)) {
 			builder.security(metadata.get(LegacyCommonConstants.KEY_SECURITY).equalsIgnoreCase(LegacyCommonConstants.SECURITY_VALUE_TOKEN) ? 
 							 ServiceSecurityType.TOKEN : ServiceSecurityType.CERTIFICATE);
