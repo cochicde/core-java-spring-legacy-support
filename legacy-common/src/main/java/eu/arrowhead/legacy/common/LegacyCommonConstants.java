@@ -14,6 +14,11 @@ public class LegacyCommonConstants {
 	public static final String DOMAIN_PORT = "domain.port";
 	public static final String $DOMAIN_PORT = "${" + DOMAIN_PORT + ":0}";
 	
+	public static final String ORCHESTRATOR_ORCHESTRATION_URI = "orchestrator.orchestration.uri";
+	public static final String OP_SERVICE_REGISTRY_QUERY_URI = "/query";
+	public static final String OP_SERVICE_REGISTRY_REGISTER_URI = "/register";
+	public static final String OP_SERVICE_REGISTRY_UNREGISTER_URI = "/unregister";
+	
 	public static final long CONVERSION_MILLISECOND_TO_SECOND = 1000;
 	
 	public static final String KEY_SECURITY = "security";
