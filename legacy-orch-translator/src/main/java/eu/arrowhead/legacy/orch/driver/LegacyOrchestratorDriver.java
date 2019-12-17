@@ -13,8 +13,12 @@ import org.springframework.web.util.UriComponents;
 
 import eu.arrowhead.common.CommonConstants;
 import eu.arrowhead.common.Utilities;
+import eu.arrowhead.common.dto.shared.OrchestrationFormRequestDTO;
+import eu.arrowhead.common.dto.shared.OrchestrationResponseDTO;
 import eu.arrowhead.common.http.HttpService;
 import eu.arrowhead.legacy.common.LegacyCommonConstants;
+import eu.arrowhead.legacy.common.model.LegacyOrchestrationResponse;
+import eu.arrowhead.legacy.common.model.LegacyServiceRequestForm;
 
 @Service
 public class LegacyOrchestratorDriver {
@@ -44,6 +48,16 @@ public class LegacyOrchestratorDriver {
 		final ResponseEntity<String> response = httpService.sendRequest(uriEcho, HttpMethod.GET, String.class);
 		
 		return response.getBody();
+	}
+	
+	//-------------------------------------------------------------------------------------------------
+	public ResponseEntity<OrchestrationResponseDTO> proceedOrchestration413(final OrchestrationFormRequestDTO request) {
+		return null; //TODO
+	}
+	
+	//-------------------------------------------------------------------------------------------------
+	public ResponseEntity<LegacyOrchestrationResponse> proceedOrchestration412(final LegacyServiceRequestForm request) {
+		return null; //TODO
 	}
 
 }
