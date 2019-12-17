@@ -1,7 +1,9 @@
 package eu.arrowhead.legacy.orch.driver;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.annotation.Resource;
 
@@ -20,9 +22,12 @@ import eu.arrowhead.common.Utilities;
 import eu.arrowhead.common.dto.shared.OrchestrationFlags.Flag;
 import eu.arrowhead.common.dto.shared.OrchestrationFormRequestDTO;
 import eu.arrowhead.common.dto.shared.OrchestrationResponseDTO;
+import eu.arrowhead.common.dto.shared.OrchestrationResultDTO;
+import eu.arrowhead.common.dto.shared.ServiceInterfaceResponseDTO;
 import eu.arrowhead.common.exception.BadPayloadException;
 import eu.arrowhead.common.http.HttpService;
 import eu.arrowhead.legacy.common.LegacyCommonConstants;
+import eu.arrowhead.legacy.common.model.LegacyModelConverter;
 import eu.arrowhead.legacy.common.model.LegacyOrchestrationResponse;
 import eu.arrowhead.legacy.common.model.LegacyServiceRequestForm;
 
@@ -61,15 +66,15 @@ public class LegacyOrchestratorDriver {
 	//-------------------------------------------------------------------------------------------------
 	public ResponseEntity<OrchestrationResponseDTO> proceedOrchestration413(final OrchestrationFormRequestDTO request) {
 		final String origin = CommonConstants.ORCHESTRATOR_URI + CommonConstants.OP_ORCH_PROCESS;
-		if (request.getOrchestrationFlags().get(Flag.TRIGGER_INTER_CLOUD)) {
+		if (request.getOrchestrationFlags().getOrDefault(Flag.TRIGGER_INTER_CLOUD, false)) {
 			throw new BadPayloadException("Translator does not support orchestration with flag 'TRIGGER_INTER_CLOUD=true'", HttpStatus.SC_BAD_REQUEST, origin);
 		}	
-		if (request.getOrchestrationFlags().get(Flag.ENABLE_INTER_CLOUD)) {
+		if (request.getOrchestrationFlags().getOrDefault(Flag.ENABLE_INTER_CLOUD, false)) {
 			request.getOrchestrationFlags().put(Flag.ENABLE_INTER_CLOUD, false);
 			logger.debug("Orchestration flag 'ENABLE_INTER_CLOUD=true' is not supported and was changed to false");
 		}		
 		
-		final boolean originalMatchmakingFlag = request.getOrchestrationFlags().get(Flag.MATCHMAKING);
+		final boolean originalMatchmakingFlag = request.getOrchestrationFlags().getOrDefault(Flag.MATCHMAKING, false);
 		request.getOrchestrationFlags().put(Flag.MATCHMAKING, false);
 		
 		final UriComponents uri = (UriComponents) arrowheadContext.get(LegacyCommonConstants.ORCHESTRATOR_ORCHESTRATION_URI);		
@@ -85,7 +90,60 @@ public class LegacyOrchestratorDriver {
 	
 	//-------------------------------------------------------------------------------------------------
 	public ResponseEntity<LegacyOrchestrationResponse> proceedOrchestration412(final LegacyServiceRequestForm request) {
-		return null; //TODO
+		final String origin = CommonConstants.ORCHESTRATOR_URI + CommonConstants.OP_ORCH_PROCESS;
+		if (request.getRequesterSystem() == null) {
+			throw new BadPayloadException("requesterSystem cannot be null", HttpStatus.SC_BAD_REQUEST, origin);
+		}
+		if (request.getOrchestrationFlags().getOrDefault(CommonConstants.ORCHESTRATON_FLAG_TRIGGER_INTER_CLOUD, false)) {
+			throw new BadPayloadException("Translator does not support orchestration with flag 'TRIGGER_INTER_CLOUD=true'", HttpStatus.SC_BAD_REQUEST, origin);
+		}
+		
+		final Set<String> requestedInterfaces = request.getRequestedService().getInterfaces();		
+		final OrchestrationFormRequestDTO orchestrationRequest = LegacyModelConverter.convertLegacyServiceRequestFormToOrchestrationFormRequestDTO(request);
+		if (orchestrationRequest.getOrchestrationFlags().getOrDefault(Flag.ENABLE_INTER_CLOUD, false)) {
+			orchestrationRequest.getOrchestrationFlags().put(Flag.ENABLE_INTER_CLOUD, false);
+			logger.debug("Orchestration flag 'ENABLE_INTER_CLOUD=true' is not supported and was changed to false");
+		}		
+		final boolean originalMatchmakingFlag = orchestrationRequest.getOrchestrationFlags().getOrDefault(Flag.MATCHMAKING, false);
+		orchestrationRequest.getOrchestrationFlags().put(Flag.MATCHMAKING, false);
+		
+		final UriComponents uri = (UriComponents) arrowheadContext.get(LegacyCommonConstants.ORCHESTRATOR_ORCHESTRATION_URI);		
+		final ResponseEntity<OrchestrationResponseDTO> response = httpService.sendRequest(uri, HttpMethod.POST, OrchestrationResponseDTO.class, request);
+		final OrchestrationResponseDTO dto = response.getBody();
+		
+		//Filter on originally requested interface
+		if (requestedInterfaces != null && !requestedInterfaces.isEmpty()) {
+			final List<OrchestrationResultDTO> providersWithProperInterface = new ArrayList<>();
+			for (final OrchestrationResultDTO result : dto.getResponse()) {
+				if (result.getMetadata() != null
+						&& result.getMetadata().containsKey(LegacyCommonConstants.KEY_ARROWHEAD_VERSION)
+						&& result.getMetadata().get(LegacyCommonConstants.KEY_ARROWHEAD_VERSION).equalsIgnoreCase(LegacyCommonConstants.ARROWHEAD_VERSION_VALUE_412)) {
+					
+					//Arrowhead v4.1.2 compliant provider
+					if (result.getMetadata().containsKey(LegacyCommonConstants.KEY_LEGACY_INTERFACE)
+							&& requestedInterfaces.contains(result.getMetadata().get(LegacyCommonConstants.KEY_LEGACY_INTERFACE))) {
+						providersWithProperInterface.add(result);
+					}
+					
+				} else {
+					
+					//Arrowhead v4.1.3 compliant provider 
+					for (final ServiceInterfaceResponseDTO interfaceDTO : result.getInterfaces()) {
+						if (requestedInterfaces.contains(interfaceDTO.getInterfaceName())) {
+							providersWithProperInterface.add(result);
+						}
+					}
+					
+				}
+			}
+			dto.setResponse(providersWithProperInterface);			
+		}
+		
+		if (originalMatchmakingFlag && dto.getResponse().size() > 1) {
+			dto.setResponse(List.of(dto.getResponse().iterator().next()));
+		}
+		
+		return new ResponseEntity<>(LegacyModelConverter.convertOrchestrationResponseDTOtoLegacyOrchestrationResponse(dto), org.springframework.http.HttpStatus.OK);
 	}
 	
 	//=================================================================================================

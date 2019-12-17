@@ -10,7 +10,13 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import eu.arrowhead.common.CommonConstants;
 import eu.arrowhead.common.Utilities;
+import eu.arrowhead.common.dto.shared.CloudRequestDTO;
+import eu.arrowhead.common.dto.shared.OrchestrationFlags;
+import eu.arrowhead.common.dto.shared.OrchestrationFormRequestDTO;
+import eu.arrowhead.common.dto.shared.OrchestrationResponseDTO;
+import eu.arrowhead.common.dto.shared.PreferredProviderDataDTO;
 import eu.arrowhead.common.dto.shared.ServiceQueryFormDTO;
 import eu.arrowhead.common.dto.shared.ServiceQueryResultDTO;
 import eu.arrowhead.common.dto.shared.ServiceRegistryRequestDTO;
@@ -23,6 +29,26 @@ public class LegacyModelConverter {
 	
 	//=================================================================================================
 	// methods
+	
+	//-------------------------------------------------------------------------------------------------
+	public static SystemRequestDTO convertLegacyArrowheadSystemToSystemRequestDTO(final LegacyArrowheadSystem legacySystem) {
+		final SystemRequestDTO systemRequestDTO = new SystemRequestDTO();
+		systemRequestDTO.setSystemName(legacySystem.getSystemName());
+		systemRequestDTO.setAddress(legacySystem.getAddress());
+		systemRequestDTO.setPort(legacySystem.getPort());
+		systemRequestDTO.setAuthenticationInfo(legacySystem.getAuthenticationInfo());
+		return systemRequestDTO;
+	}
+	
+	//-------------------------------------------------------------------------------------------------
+	public static CloudRequestDTO convertLegacyArrowheadCloudToCloudRequestDTO(final LegacyArrowheadCloud legacyCloud) {
+		final CloudRequestDTO cloudRequestDTO = new CloudRequestDTO();
+		cloudRequestDTO.setOperator(legacyCloud.getOperator());
+		cloudRequestDTO.setName(legacyCloud.getCloudName());
+		cloudRequestDTO.setSecure(legacyCloud.getSecure());
+		cloudRequestDTO.setAuthenticationInfo(legacyCloud.getAuthenticationInfo());
+		return cloudRequestDTO;
+	}
 	
 	//-------------------------------------------------------------------------------------------------
 	public static LegacyServiceRegistryEntry convertServiceRegistryResponseDTOToLegacyServiceRegistryEntry(final ServiceRegistryResponseDTO dto) {
@@ -60,11 +86,7 @@ public class LegacyModelConverter {
 	
 	//-------------------------------------------------------------------------------------------------
 	public static ServiceRegistryRequestDTO convertLegacyServiceRegistryEntryToServiceRegistryRequestDTO(final LegacyServiceRegistryEntry entry) {
-		final SystemRequestDTO provider = new SystemRequestDTO();
-		provider.setSystemName(entry.getProvider().getSystemName());
-		provider.setAddress(entry.getProvider().getAddress());
-		provider.setPort(entry.getProvider().getPort());
-		provider.setAuthenticationInfo(entry.getProvider().getAuthenticationInfo());
+		final SystemRequestDTO provider = convertLegacyArrowheadSystemToSystemRequestDTO(entry.getProvider());
 		
 		if (entry.getProvidedService().getServiceMetadata() == null) {
 			entry.getProvidedService().setServiceMetadata(new HashMap<>());
@@ -142,6 +164,48 @@ public class LegacyModelConverter {
 		return result;
 	}
 	
+	//-------------------------------------------------------------------------------------------------
+	public static OrchestrationFormRequestDTO convertLegacyServiceRequestFormToOrchestrationFormRequestDTO(final LegacyServiceRequestForm form) {
+		final SystemRequestDTO requesterSystem = convertLegacyArrowheadSystemToSystemRequestDTO(form.getRequesterSystem());
+		final CloudRequestDTO requesterCloud = convertLegacyArrowheadCloudToCloudRequestDTO(form.getRequesterCloud());
+		
+		final ServiceQueryFormDTO requestedService = new ServiceQueryFormDTO.Builder(form.getRequestedService().getServiceDefinition())
+																			.interfaces() //intentionally ignored
+																			.security(calculateSecurityType(form.getRequestedService().getServiceMetadata()))
+																			.metadata(form.getRequestedService().getServiceMetadata())
+																			.pingProviders(form.getOrchestrationFlags().getOrDefault(CommonConstants.ORCHESTRATON_FLAG_PING_PROVIDERS, false))
+																			.build();
+		
+		if (form.getRequestedService().getServiceMetadata().containsKey(LegacyCommonConstants.KEY_MIN_VERSION)
+				|| form.getRequestedService().getServiceMetadata().containsKey(LegacyCommonConstants.KEY_MAX_VERSION)) {
+			
+			final String minVersionStr = form.getRequestedService().getServiceMetadata().get(LegacyCommonConstants.KEY_MIN_VERSION);
+			final String maxVersionStr = form.getRequestedService().getServiceMetadata().get(LegacyCommonConstants.KEY_MAX_VERSION);			
+			Integer minVersion = null, maxVersion = null;
+			try {
+				minVersion = Utilities.isEmpty(minVersionStr) ? null : Integer.parseInt(minVersionStr);
+			} catch (final NumberFormatException ex) {} // intentionally ignored			
+			try {
+				maxVersion = Utilities.isEmpty(maxVersionStr) ? null : Integer.parseInt(maxVersionStr);
+			} catch (final NumberFormatException ex) {} // intentionally ignored			
+			requestedService.setMinVersionRequirement(minVersion);
+			requestedService.setMaxVersionRequirement(maxVersion);	
+		}
+		
+		return new OrchestrationFormRequestDTO.Builder(requesterSystem)
+											  .requesterCloud(requesterCloud)
+											  .requestedService(requestedService)
+											  .flags(new OrchestrationFlags(form.getOrchestrationFlags()))
+											  .preferredProviders(convertLegacyPreferredProviderListToPreferredProviderListDTO(form.getPreferredProviders()))
+											  .commands(form.getCommands())
+											  .build();
+	}
+	
+	//-------------------------------------------------------------------------------------------------
+	public static LegacyOrchestrationResponse convertOrchestrationResponseDTOtoLegacyOrchestrationResponse(final OrchestrationResponseDTO legacyResponse) {
+		return null;//TODO
+	}
+	
 	//=================================================================================================
 	// assistant methods
 	
@@ -153,7 +217,7 @@ public class LegacyModelConverter {
 	
 	//-------------------------------------------------------------------------------------------------
 	private static String convertEndOfValidityToUTCString(final LocalDateTime localDateTime) {
-		ZonedDateTime zonedDateTime = localDateTime.atZone(ZoneId.systemDefault());
+		final ZonedDateTime zonedDateTime = localDateTime.atZone(ZoneId.systemDefault());
 		return Utilities.convertZonedDateTimeToUTCString(zonedDateTime);
 	}
 	
@@ -168,6 +232,20 @@ public class LegacyModelConverter {
 		} else {
 			return ServiceSecurityType.NOT_SECURE;
 		}
+	}
+	
+	//-------------------------------------------------------------------------------------------------
+	private static PreferredProviderDataDTO[] convertLegacyPreferredProviderListToPreferredProviderListDTO(final List<LegacyPreferredProvider> legacyPrefferedProviderList) {
+		final PreferredProviderDataDTO[] preferredProviders = new PreferredProviderDataDTO[legacyPrefferedProviderList.size()];
+		int index = 0;
+		for (final LegacyPreferredProvider legacyProvider : legacyPrefferedProviderList) {
+			final PreferredProviderDataDTO providerDataDTO = new PreferredProviderDataDTO();
+			providerDataDTO.setProviderSystem(convertLegacyArrowheadSystemToSystemRequestDTO(legacyProvider.getProviderSystem()));
+			providerDataDTO.setProviderCloud(convertLegacyArrowheadCloudToCloudRequestDTO(legacyProvider.getProviderCloud()));
+			preferredProviders[index] = providerDataDTO;
+			index++;
+		}
+		return preferredProviders;
 	}
 
 	//-------------------------------------------------------------------------------------------------

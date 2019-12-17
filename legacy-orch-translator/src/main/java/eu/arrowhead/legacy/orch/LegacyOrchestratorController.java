@@ -17,6 +17,7 @@ import eu.arrowhead.common.Utilities;
 import eu.arrowhead.common.dto.shared.OrchestrationFormRequestDTO;
 import eu.arrowhead.common.exception.ArrowheadException;
 import eu.arrowhead.common.exception.BadPayloadException;
+import eu.arrowhead.legacy.common.model.LegacyServiceRequestForm;
 import eu.arrowhead.legacy.orch.driver.LegacyOrchestratorDriver;
 
 @RestController
@@ -68,6 +69,12 @@ public class LegacyOrchestratorController {
 	
 	//-------------------------------------------------------------------------------------------------
 	private ResponseEntity<?> orchestrationProcess412(final String requestStr) {
-		return null; //TODO;
+		LegacyServiceRequestForm request;
+		try {
+			request = Utilities.fromJson(requestStr, LegacyServiceRequestForm.class);
+		} catch (final ArrowheadException ex) {
+			throw new BadPayloadException("Invalid input JSON.", org.apache.http.HttpStatus.SC_BAD_REQUEST, CommonConstants.ORCHESTRATOR_URI + CommonConstants.OP_ORCH_PROCESS);
+		}
+		return legacyDriver.proceedOrchestration412(request);
 	}	
 }
