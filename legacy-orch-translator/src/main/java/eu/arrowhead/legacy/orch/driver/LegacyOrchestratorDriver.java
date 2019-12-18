@@ -3,6 +3,7 @@ package eu.arrowhead.legacy.orch.driver;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import javax.annotation.Resource;
@@ -143,15 +144,19 @@ public class LegacyOrchestratorDriver {
 			dto.setResponse(List.of(dto.getResponse().iterator().next()));
 		}
 		
-		return new ResponseEntity<>(LegacyModelConverter.convertOrchestrationResponseDTOtoLegacyOrchestrationResponse(dto), org.springframework.http.HttpStatus.OK);
+		final Entry<String, String> tokenWorkaround = tokenWorkaround();
+		final String legacyToken = tokenWorkaround.getKey();
+		final String legacySignature = tokenWorkaround.getValue();
+		
+		return new ResponseEntity<>(LegacyModelConverter.convertOrchestrationResponseDTOtoLegacyOrchestrationResponse(dto, legacyToken, legacySignature), org.springframework.http.HttpStatus.OK);
 	}
 	
 	//=================================================================================================
 	// assistant methods
 	
 	//-------------------------------------------------------------------------------------------------
-	public void tokenWorkaround() {
-		//TODO
+	public Entry<String, String> tokenWorkaround() {
+		return null; //TODO
 	}
 
 }

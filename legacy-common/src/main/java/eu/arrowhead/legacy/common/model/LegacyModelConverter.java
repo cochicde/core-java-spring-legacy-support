@@ -5,6 +5,7 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -16,13 +17,16 @@ import eu.arrowhead.common.dto.shared.CloudRequestDTO;
 import eu.arrowhead.common.dto.shared.OrchestrationFlags;
 import eu.arrowhead.common.dto.shared.OrchestrationFormRequestDTO;
 import eu.arrowhead.common.dto.shared.OrchestrationResponseDTO;
+import eu.arrowhead.common.dto.shared.OrchestrationResultDTO;
 import eu.arrowhead.common.dto.shared.PreferredProviderDataDTO;
+import eu.arrowhead.common.dto.shared.ServiceInterfaceResponseDTO;
 import eu.arrowhead.common.dto.shared.ServiceQueryFormDTO;
 import eu.arrowhead.common.dto.shared.ServiceQueryResultDTO;
 import eu.arrowhead.common.dto.shared.ServiceRegistryRequestDTO;
 import eu.arrowhead.common.dto.shared.ServiceRegistryResponseDTO;
 import eu.arrowhead.common.dto.shared.ServiceSecurityType;
 import eu.arrowhead.common.dto.shared.SystemRequestDTO;
+import eu.arrowhead.common.dto.shared.SystemResponseDTO;
 import eu.arrowhead.legacy.common.LegacyCommonConstants;
 
 public class LegacyModelConverter {
@@ -38,6 +42,17 @@ public class LegacyModelConverter {
 		systemRequestDTO.setPort(legacySystem.getPort());
 		systemRequestDTO.setAuthenticationInfo(legacySystem.getAuthenticationInfo());
 		return systemRequestDTO;
+	}
+	
+	//-------------------------------------------------------------------------------------------------
+	public static LegacyArrowheadSystem convertSystemResponseDTOToLegacyArrowheadSystem(final SystemResponseDTO dto) {
+		final LegacyArrowheadSystem legacySystem = new LegacyArrowheadSystem();
+		legacySystem.setId(dto.getId());
+		legacySystem.setSystemName(dto.getSystemName());
+		legacySystem.setAddress(dto.getAddress());
+		legacySystem.setPort(dto.getPort());
+		legacySystem.setAuthenticationInfo(dto.getAuthenticationInfo());
+		return legacySystem;
 	}
 	
 	//-------------------------------------------------------------------------------------------------
@@ -202,8 +217,27 @@ public class LegacyModelConverter {
 	}
 	
 	//-------------------------------------------------------------------------------------------------
-	public static LegacyOrchestrationResponse convertOrchestrationResponseDTOtoLegacyOrchestrationResponse(final OrchestrationResponseDTO legacyResponse) {
-		return null;//TODO
+	public static LegacyOrchestrationResponse convertOrchestrationResponseDTOtoLegacyOrchestrationResponse(final OrchestrationResponseDTO dto, final String authorizationToken,
+																										   final String signature) {
+		final List<LegacyOrchestrationForm> legacyForms = new ArrayList<>();
+		
+		for (final OrchestrationResultDTO	orchResult : dto.getResponse()) {
+			final LegacyOrchestrationForm legacyForm = new LegacyOrchestrationForm();
+			legacyForm.setProvider(convertSystemResponseDTOToLegacyArrowheadSystem(orchResult.getProvider()));
+			final Set<String> interfaces = new HashSet<>();
+			for (final ServiceInterfaceResponseDTO interf : orchResult.getInterfaces()) {
+				interfaces.add(interf.getInterfaceName());
+			}
+			legacyForm.setService(new LegacyArrowheadService(orchResult.getService().getId(), orchResult.getService().getServiceDefinition(), interfaces, orchResult.getMetadata()));
+			legacyForm.setServiceURI(orchResult.getServiceUri());
+			legacyForm.setAuthorizationToken(authorizationToken);
+			legacyForm.setSignature(signature);
+			legacyForm.setWarnings(orchResult.getWarnings());
+		}
+		
+		final LegacyOrchestrationResponse legacyResponse = new LegacyOrchestrationResponse();
+		legacyResponse.setResponse(legacyForms);
+		return legacyResponse;
 	}
 	
 	//=================================================================================================

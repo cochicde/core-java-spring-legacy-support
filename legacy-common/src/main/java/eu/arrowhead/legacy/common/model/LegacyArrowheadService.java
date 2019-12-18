@@ -22,8 +22,19 @@ public class LegacyArrowheadService implements Serializable {
 	// methods
     
     //-------------------------------------------------------------------------------------------------
+    public LegacyArrowheadService() {}
+    
+    //-------------------------------------------------------------------------------------------------
+    public LegacyArrowheadService(final Long id, final String serviceDefinition, final Set<String> interfaces, final Map<String, String> serviceMetadata) {
+    	this.id = id;
+    	this.serviceDefinition = serviceDefinition;
+    	this.interfaces = interfaces;
+    	this.serviceMetadata = serviceMetadata;
+    }
+    
+    //-------------------------------------------------------------------------------------------------
 	public Long getId() { return id; }
-    public String getServiceDefinition() { return serviceDefinition; }
+	public String getServiceDefinition() { return serviceDefinition; }
     public Set<String> getInterfaces() { return interfaces; }
     public Map<String,String> getServiceMetadata() { return serviceMetadata; }
     
