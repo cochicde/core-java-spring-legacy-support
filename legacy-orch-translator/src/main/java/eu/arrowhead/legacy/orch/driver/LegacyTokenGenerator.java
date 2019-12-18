@@ -104,22 +104,22 @@ public class LegacyTokenGenerator {
 		}
 		
 		// Finally, generate the token and signature strings
-		String tokenString = null;
 		String signatureString = null;
+		String tokenString = null;
 		try {
 			
 			cipher.init(Cipher.ENCRYPT_MODE, providerPublicKey);
 			final byte[] tokenBytes = cipher.doFinal(json.getBytes(StandardCharsets.UTF_8));
 			signature.update(tokenBytes);
 			final byte[] sigBytes = signature.sign();
-			tokenString = Base64.getEncoder().encodeToString(tokenBytes);
 			signatureString = Base64.getEncoder().encodeToString(sigBytes);
+			tokenString = Base64.getEncoder().encodeToString(tokenBytes);
 			
 		} catch (final Exception ex) {
 			logger.debug("Cipher or Signature class throws public key specific exception: " + ex.getMessage());
 		}		
 		
-		return Map.entry(tokenString, tokenString);
+		return Map.entry(signatureString, tokenString);
 	}
 	
 	//=================================================================================================

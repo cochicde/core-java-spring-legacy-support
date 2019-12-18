@@ -26,6 +26,9 @@ public class LegacyCommonConstants {
 	public static final String KEY_MAX_VERSION = "maxVersion";
 	public static final String KEY_ARROWHEAD_VERSION = "arrowhead.version";
 	public static final String KEY_LEGACY_INTERFACE = "legacy.intf";
+	public static final String KEY_LEGACY_TOKEN = "legacy.token";
+	public static final String KEY_LEGACY_SIGNATURE = "legacy.signature";
+	public static final String SUFFIX_412_SIGNATURE = "-SIGNATURE";
 	public static final String SECURITY_VALUE_TOKEN = "token";
 	public static final String ARROWHEAD_VERSION_VALUE_412 = "412";
 	public static final String ARROWHEAD_VERSION_VALUE_413 = "413";

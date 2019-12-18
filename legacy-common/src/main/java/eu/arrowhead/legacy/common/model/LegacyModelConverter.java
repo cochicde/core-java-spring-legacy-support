@@ -29,6 +29,7 @@ import eu.arrowhead.common.dto.shared.SystemRequestDTO;
 import eu.arrowhead.common.dto.shared.SystemResponseDTO;
 import eu.arrowhead.legacy.common.LegacyCommonConstants;
 
+
 public class LegacyModelConverter {
 	
 	//=================================================================================================
@@ -217,12 +218,11 @@ public class LegacyModelConverter {
 	}
 	
 	//-------------------------------------------------------------------------------------------------
-	public static LegacyOrchestrationResponse convertOrchestrationResponseDTOtoLegacyOrchestrationResponse(final OrchestrationResponseDTO dto, final String authorizationToken,
-																										   final String signature) {
+	public static LegacyOrchestrationResponse convertOrchestrationResponseDTOtoLegacyOrchestrationResponse(final OrchestrationResponseDTO dto) {
 		final List<LegacyOrchestrationForm> legacyForms = new ArrayList<>();
 		
-		for (final OrchestrationResultDTO	orchResult : dto.getResponse()) {
-			final LegacyOrchestrationForm legacyForm = new LegacyOrchestrationForm();
+		for (final OrchestrationResultDTO orchResult : dto.getResponse()) {
+			LegacyOrchestrationForm legacyForm = new LegacyOrchestrationForm();
 			legacyForm.setProvider(convertSystemResponseDTOToLegacyArrowheadSystem(orchResult.getProvider()));
 			final Set<String> interfaces = new HashSet<>();
 			for (final ServiceInterfaceResponseDTO interf : orchResult.getInterfaces()) {
@@ -230,9 +230,11 @@ public class LegacyModelConverter {
 			}
 			legacyForm.setService(new LegacyArrowheadService(orchResult.getService().getId(), orchResult.getService().getServiceDefinition(), interfaces, orchResult.getMetadata()));
 			legacyForm.setServiceURI(orchResult.getServiceUri());
-			legacyForm.setAuthorizationToken(authorizationToken);
-			legacyForm.setSignature(signature);
 			legacyForm.setWarnings(orchResult.getWarnings());
+			legacyForm.setAuthorizationToken(orchResult.getMetadata().get(LegacyCommonConstants.KEY_LEGACY_TOKEN));
+			legacyForm.setSignature(orchResult.getMetadata().get(LegacyCommonConstants.KEY_LEGACY_SIGNATURE));			
+			legacyForm.getService().getServiceMetadata().remove(LegacyCommonConstants.KEY_LEGACY_TOKEN);
+			legacyForm.getService().getServiceMetadata().remove(LegacyCommonConstants.KEY_LEGACY_SIGNATURE);
 		}
 		
 		final LegacyOrchestrationResponse legacyResponse = new LegacyOrchestrationResponse();

@@ -1,9 +1,11 @@
 package eu.arrowhead.legacy.orch.driver;
 
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Random;
 import java.util.Set;
 
 import javax.annotation.Resource;
@@ -25,6 +27,7 @@ import eu.arrowhead.common.dto.shared.OrchestrationFormRequestDTO;
 import eu.arrowhead.common.dto.shared.OrchestrationResponseDTO;
 import eu.arrowhead.common.dto.shared.OrchestrationResultDTO;
 import eu.arrowhead.common.dto.shared.ServiceInterfaceResponseDTO;
+import eu.arrowhead.common.dto.shared.ServiceSecurityType;
 import eu.arrowhead.common.exception.BadPayloadException;
 import eu.arrowhead.common.http.HttpService;
 import eu.arrowhead.legacy.common.LegacyCommonConstants;
@@ -40,6 +43,9 @@ public class LegacyOrchestratorDriver {
 	
 	@Autowired
 	private HttpService httpService;
+	
+	@Autowired
+	private LegacyTokenGenerator legacyTokenGenerator;
 	
 	@Resource(name = CommonConstants.ARROWHEAD_CONTEXT)
 	private Map<String,Object> arrowheadContext;
@@ -86,6 +92,28 @@ public class LegacyOrchestratorDriver {
 			dto.setResponse(List.of(dto.getResponse().iterator().next()));
 		}
 		
+		List<OrchestrationResultDTO> orchResultsWithLegacyTokenWorkarund = new ArrayList<>();
+		
+		for (OrchestrationResultDTO result : dto.getResponse()) {
+			if (result.getMetadata() != null
+					&& result.getMetadata().containsKey(LegacyCommonConstants.KEY_ARROWHEAD_VERSION)
+					&& result.getMetadata().get(LegacyCommonConstants.KEY_ARROWHEAD_VERSION).equalsIgnoreCase(LegacyCommonConstants.ARROWHEAD_VERSION_VALUE_412)) {
+				
+				//Arrowhead v4.1.2 compliant provider
+				if (result.getSecure() == ServiceSecurityType.TOKEN) {					
+					result = generateLegacyTokenForConsumer413(request.getRequesterCloud().getOperator(), request.getRequesterCloud().getName(), request.getRequesterSystem().getSystemName(),
+															   result);
+				}
+				if (result != null) { //Can be null when token generation failed -> skip provider
+					orchResultsWithLegacyTokenWorkarund.add(result);
+				}				
+			} else {
+				//Arrowhead v4.1.3 compliant provider
+				orchResultsWithLegacyTokenWorkarund.add(result);
+			}
+		}
+		dto.setResponse(orchResultsWithLegacyTokenWorkarund);
+		
 		return new ResponseEntity<>(dto, org.springframework.http.HttpStatus.OK);
 	}
 	
@@ -112,10 +140,10 @@ public class LegacyOrchestratorDriver {
 		final ResponseEntity<OrchestrationResponseDTO> response = httpService.sendRequest(uri, HttpMethod.POST, OrchestrationResponseDTO.class, request);
 		final OrchestrationResponseDTO dto = response.getBody();
 		
-		//Filter on originally requested interface
+		//Filter on originally requested interface & generate token if required
 		if (requestedInterfaces != null && !requestedInterfaces.isEmpty()) {
 			final List<OrchestrationResultDTO> providersWithProperInterface = new ArrayList<>();
-			for (final OrchestrationResultDTO result : dto.getResponse()) {
+			for (OrchestrationResultDTO result : dto.getResponse()) {
 				if (result.getMetadata() != null
 						&& result.getMetadata().containsKey(LegacyCommonConstants.KEY_ARROWHEAD_VERSION)
 						&& result.getMetadata().get(LegacyCommonConstants.KEY_ARROWHEAD_VERSION).equalsIgnoreCase(LegacyCommonConstants.ARROWHEAD_VERSION_VALUE_412)) {
@@ -123,7 +151,13 @@ public class LegacyOrchestratorDriver {
 					//Arrowhead v4.1.2 compliant provider
 					if (result.getMetadata().containsKey(LegacyCommonConstants.KEY_LEGACY_INTERFACE)
 							&& requestedInterfaces.contains(result.getMetadata().get(LegacyCommonConstants.KEY_LEGACY_INTERFACE))) {
-						providersWithProperInterface.add(result);
+						if (result.getSecure() == ServiceSecurityType.TOKEN) {
+							result = generateLegacyTokenForConsumer412(true, request.getRequesterCloud().getOperator(), request.getRequesterCloud().getCloudName(),
+																	   request.getRequesterSystem().getSystemName(), result);							
+						}
+						if (result != null) { //Can be null when token generation failed -> skip provider							
+							providersWithProperInterface.add(result);
+						}
 					}
 					
 				} else {
@@ -131,10 +165,14 @@ public class LegacyOrchestratorDriver {
 					//Arrowhead v4.1.3 compliant provider 
 					for (final ServiceInterfaceResponseDTO interfaceDTO : result.getInterfaces()) {
 						if (requestedInterfaces.contains(interfaceDTO.getInterfaceName())) {
+							if (result.getSecure() == ServiceSecurityType.TOKEN) {
+								result = generateLegacyTokenForConsumer412(false, request.getRequesterCloud().getOperator(), request.getRequesterCloud().getCloudName(),
+																		   request.getRequesterSystem().getSystemName(), result);
+								
+							}
 							providersWithProperInterface.add(result);
 						}
-					}
-					
+					}					
 				}
 			}
 			dto.setResponse(providersWithProperInterface);			
@@ -144,19 +182,72 @@ public class LegacyOrchestratorDriver {
 			dto.setResponse(List.of(dto.getResponse().iterator().next()));
 		}
 		
-		final Entry<String, String> tokenWorkaround = tokenWorkaround();
-		final String legacyToken = tokenWorkaround.getKey();
-		final String legacySignature = tokenWorkaround.getValue();
+		LegacyOrchestrationResponse legacyResponse = LegacyModelConverter.convertOrchestrationResponseDTOtoLegacyOrchestrationResponse(dto);
+		if (legacyResponse.getResponse().isEmpty()) {
+			new ResponseEntity<>(org.springframework.http.HttpStatus.NOT_FOUND);
+		}
 		
-		return new ResponseEntity<>(LegacyModelConverter.convertOrchestrationResponseDTOtoLegacyOrchestrationResponse(dto, legacyToken, legacySignature), org.springframework.http.HttpStatus.OK);
+		return new ResponseEntity<>(legacyResponse, org.springframework.http.HttpStatus.OK);
 	}
 	
 	//=================================================================================================
 	// assistant methods
+
+	//-------------------------------------------------------------------------------------------------
+	private OrchestrationResultDTO generateLegacyTokenForConsumer412(final boolean isProvider412, final String consumerCloudOperator, final String consumerCloudName, final String ConsumerSystemName,
+																	 final OrchestrationResultDTO result) {
+		if (isProvider412) {			
+			final Entry<String, String> tokenData = legacyTokenGenerator.generateLegacyToken(consumerCloudOperator, consumerCloudName, ConsumerSystemName,
+																							 result.getProvider().getAuthenticationInfo(),
+																							 result.getService().getServiceDefinition(),
+																							 result.getMetadata().get(LegacyCommonConstants.KEY_LEGACY_INTERFACE));			
+			if (tokenData == null || tokenData.getKey() == null || tokenData.getValue() == null) {
+				logger.debug("Token generation failed for the provider ArrowheadSystem");
+				return null;
+			}
+			result.getMetadata().put(LegacyCommonConstants.KEY_LEGACY_SIGNATURE, tokenData.getKey());
+			result.getMetadata().put(LegacyCommonConstants.KEY_LEGACY_TOKEN, tokenData.getValue());
+			return result;
+			
+		} else {			
+			result.getMetadata().put(LegacyCommonConstants.KEY_LEGACY_SIGNATURE, randomString());
+			result.getMetadata().put(LegacyCommonConstants.KEY_LEGACY_TOKEN, result.getAuthorizationTokens().entrySet().iterator().next().getValue());	
+			return result;
+		}
+	}
 	
 	//-------------------------------------------------------------------------------------------------
-	public Entry<String, String> tokenWorkaround() {
-		return null; //TODO
+	private OrchestrationResultDTO generateLegacyTokenForConsumer413(final String consumerCloudOperator, final String consumerCloudName, final String ConsumerSystemName,
+																	 final OrchestrationResultDTO result) {
+		final Entry<String, String> tokenDataLegacyInterface = legacyTokenGenerator.generateLegacyToken(consumerCloudOperator, consumerCloudName, ConsumerSystemName,
+																										result.getProvider().getAuthenticationInfo(),
+																										result.getService().getServiceDefinition(),
+																										result.getMetadata().get(LegacyCommonConstants.KEY_LEGACY_INTERFACE));
+		if (tokenDataLegacyInterface == null || tokenDataLegacyInterface.getKey() == null || tokenDataLegacyInterface.getValue() == null) {
+				logger.debug("Token generation with legacy interface failed for the provider ArrowheadSystem");
+				return null;
+			}
+			
+			final Entry<String, String> tokenDataDefaultInterface = legacyTokenGenerator.generateLegacyToken(consumerCloudOperator, consumerCloudName, ConsumerSystemName,
+					 result.getProvider().getAuthenticationInfo(),
+					 result.getService().getServiceDefinition(),
+					 LegacyCommonConstants.DEFAULT_INTERFACE);
+			if (tokenDataDefaultInterface == null || tokenDataDefaultInterface.getKey() == null || tokenDataDefaultInterface.getValue() == null) {
+				logger.debug("Token generation with default interface failed for the provider ArrowheadSystem");
+				return null;
+			}
+			
+			result.getAuthorizationTokens().put(result.getMetadata().get(LegacyCommonConstants.KEY_LEGACY_INTERFACE), tokenDataLegacyInterface.getValue());
+			result.getAuthorizationTokens().put(result.getMetadata().get(LegacyCommonConstants.KEY_LEGACY_INTERFACE) + LegacyCommonConstants.SUFFIX_412_SIGNATURE, tokenDataLegacyInterface.getKey());
+			result.getAuthorizationTokens().put(LegacyCommonConstants.DEFAULT_INTERFACE, tokenDataDefaultInterface.getValue());
+			result.getAuthorizationTokens().put(LegacyCommonConstants.DEFAULT_INTERFACE + LegacyCommonConstants.SUFFIX_412_SIGNATURE, tokenDataDefaultInterface.getKey());
+			return result;
 	}
-
+	
+	//-------------------------------------------------------------------------------------------------
+	private String randomString() {
+		byte[] array = new byte[150];
+		new Random().nextBytes(array);
+		return new String(array, Charset.forName("UTF-8"));
+	}
 }
