@@ -30,6 +30,10 @@ public class LegacyCommonConstants {
 	public static final String ARROWHEAD_VERSION_VALUE_412 = "412";
 	public static final String ARROWHEAD_VERSION_VALUE_413 = "413";
 	
+	public static final String AUTHORIZATION_PRIVATE_KEY = "authorization.private.key";
+	public static final String OWN_CLOUD_NAME = "own.cloud.name";
+	public static final String OWN_CLOUD_OPERATOR = "own.cloud.operator";
+	
 	public static final String DEFAULT_INTERFACE = "HTTP-SECURE-JSON";
 	
 	public static final String FIELD_ERROR_MESSAGE = "errorMessage";
