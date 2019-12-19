@@ -173,9 +173,8 @@ public class LegacyOrchestratorAppInitListener extends LegacyAppInitListener {
 			final PrivateKey privateKey = Utilities.getPrivateKey(keyStore, sslProperties.getKeyPassword());
 			context.put(LegacyCommonConstants.AUTHORIZATION_PRIVATE_KEY, privateKey);
 			
-		} catch (NoSuchAlgorithmException | CertificateException | IOException | KeyStoreException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		} catch (NoSuchAlgorithmException | CertificateException | IOException | KeyStoreException ex) {
+			throw new AuthException("Obtaining Authorization privet key failed: " + ex.getMessage());
 		}
 		
 	}
