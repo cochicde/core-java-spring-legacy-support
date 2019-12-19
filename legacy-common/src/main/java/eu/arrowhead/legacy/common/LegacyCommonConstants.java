@@ -33,6 +33,15 @@ public class LegacyCommonConstants {
 	public static final String ARROWHEAD_VERSION_VALUE_412 = "412";
 	public static final String ARROWHEAD_VERSION_VALUE_413 = "413";
 	
+	public static final String AUTHORIZATION_KEYSTORE_TYPE = "authorization.server.ssl.key-store-type";
+	public static final String $AUTHORIZATION_KEYSTORE_TYPE = "${" + AUTHORIZATION_KEYSTORE_TYPE + "}";
+	public static final String AUTHORIZATION_KEYSTORE_PATH = "authorization.server.ssl.key-store";
+	public static final String $AUTHORIZATION_KEYSTORE_PATH = "${" + AUTHORIZATION_KEYSTORE_PATH + "}";
+	public static final String AUTHORIZATION_KEYSTORE_PASSWORD = "authorization.server.ssl.key-store-password";
+	public static final String $AUTHORIZATION_KEYSTORE_PASSWORD = "${" + AUTHORIZATION_KEYSTORE_PASSWORD + "}";
+	public static final String AUTHORIZATION_KEY_PASSWORD = "authorization.server.ssl.key-password";
+	public static final String $AUTHORIZATION_KEY_PASSWORD = "${" + AUTHORIZATION_KEY_PASSWORD + "}";
+	
 	public static final String AUTHORIZATION_PRIVATE_KEY = "authorization.private.key";
 	public static final String OWN_CLOUD_NAME = "own.cloud.name";
 	public static final String OWN_CLOUD_OPERATOR = "own.cloud.operator";

@@ -1,14 +1,24 @@
 package eu.arrowhead.legacy.orch;
 
+import java.io.IOException;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.ServiceConfigurationError;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.event.ContextRefreshedEvent;
+import org.springframework.core.io.Resource;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
+import org.springframework.util.Assert;
 import org.springframework.web.util.UriComponents;
 
 import eu.arrowhead.common.CommonConstants;
@@ -22,11 +32,27 @@ import eu.arrowhead.common.dto.shared.ServiceRegistryResponseDTO;
 import eu.arrowhead.common.dto.shared.ServiceSecurityType;
 import eu.arrowhead.common.dto.shared.SystemRequestDTO;
 import eu.arrowhead.common.dto.shared.SystemResponseDTO;
+import eu.arrowhead.common.exception.AuthException;
 import eu.arrowhead.legacy.common.LegacyAppInitListener;
 import eu.arrowhead.legacy.common.LegacyCommonConstants;
 
 @Component
 public class LegacyOrchestratorAppInitListener extends LegacyAppInitListener {
+	
+	//=================================================================================================
+	// members
+	
+	@Value(LegacyCommonConstants.$AUTHORIZATION_KEYSTORE_TYPE)
+	private String authorizationKeyStoreType;
+	
+	@Value(LegacyCommonConstants.$AUTHORIZATION_KEYSTORE_PATH)
+	private Resource authorizationKeyStore;
+	
+	@Value(LegacyCommonConstants.$AUTHORIZATION_KEYSTORE_PASSWORD)
+	private String authorizationKeyStorePassword;
+	
+	@Value(LegacyCommonConstants.$AUTHORIZATION_KEY_PASSWORD)
+	private String authorizationKeyPassword;
 
 	//=================================================================================================
 	// assistant methods
@@ -44,6 +70,10 @@ public class LegacyOrchestratorAppInitListener extends LegacyAppInitListener {
 		
 		@SuppressWarnings("unchecked")
 		final Map<String, Object> context = event.getApplicationContext().getBean(CommonConstants.ARROWHEAD_CONTEXT, Map.class);
+		if (sslProperties.isSslEnabled()) {
+			obtainAuthorzationPrivateKey(context); // Necessary for legacy token generation 
+			obtainOwnCloudInfo(context); // Necessary for legacy token generation
+		}		
 		final String scheme = sslProperties.isSslEnabled() ? CommonConstants.HTTPS : CommonConstants.HTTP;
 		final UriComponents srQueryUri = createSRQueryUri(scheme);
 		final SystemResponseDTO orchestrator = getOrchestrationCoreSystemDTO(srQueryUri, scheme);
@@ -116,5 +146,50 @@ public class LegacyOrchestratorAppInitListener extends LegacyAppInitListener {
 		serviceRegistryRequestDTO.setSecure(sslProperties.isSslEnabled() ? ServiceSecurityType.CERTIFICATE : ServiceSecurityType.NOT_SECURE);
 		
 		httpService.sendRequest(srRegisterUri, HttpMethod.POST, ServiceRegistryResponseDTO.class, serviceRegistryRequestDTO);
+	}
+	
+	//-------------------------------------------------------------------------------------------------
+	private void obtainAuthorzationPrivateKey(final Map<String, Object> context) {
+		logger.debug("obtainAuthorzationPrivateKey started...");
+		
+		Assert.isTrue(sslProperties.isSslEnabled(), "SSL is not enabled.");
+		final String messageNotDefined = " is not defined.";
+		Assert.isTrue(!Utilities.isEmpty(authorizationKeyStoreType), LegacyCommonConstants.AUTHORIZATION_KEYSTORE_TYPE + messageNotDefined);
+		Assert.notNull(authorizationKeyStore, LegacyCommonConstants.AUTHORIZATION_KEYSTORE_PATH + messageNotDefined);
+		Assert.isTrue(authorizationKeyStore.exists(), LegacyCommonConstants.AUTHORIZATION_KEYSTORE_PATH + " file is not found.");
+		Assert.notNull(authorizationKeyStorePassword, LegacyCommonConstants.AUTHORIZATION_KEYSTORE_PASSWORD + messageNotDefined);
+		
+		try {
+			final KeyStore keyStore = KeyStore.getInstance(authorizationKeyStoreType);
+			keyStore.load(authorizationKeyStore.getInputStream(), authorizationKeyStorePassword.toCharArray());
+			
+			final X509Certificate serverCertificate = Utilities.getFirstCertFromKeyStore(keyStore);
+			final String serverCN = Utilities.getCertCNFromSubject(serverCertificate.getSubjectDN().getName());
+			if (!Utilities.isKeyStoreCNArrowheadValid(serverCN)) {
+				logger.info("Server CN ({}) is not compliant with the Arrowhead certificate structure, since it does not have 5 parts, or does not end with \"arrowhead.eu\".", serverCN);
+				throw new AuthException("Server CN (" + serverCN + ") is not compliant with the Arrowhead certificate structure, since it does not have 5 parts, or does not end with \"arrowhead.eu\".");
+			}
+			
+			final PrivateKey privateKey = Utilities.getPrivateKey(keyStore, sslProperties.getKeyPassword());
+			context.put(LegacyCommonConstants.AUTHORIZATION_PRIVATE_KEY, privateKey);
+			
+		} catch (NoSuchAlgorithmException | CertificateException | IOException | KeyStoreException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+	}
+	
+	//-------------------------------------------------------------------------------------------------
+	private void obtainOwnCloudInfo(final Map<String, Object> context) {
+		Assert.isTrue(sslProperties.isSslEnabled(), "SSL is not enabled.");
+		
+		final String serverCN = (String) context.get(CommonConstants.SERVER_COMMON_NAME);
+		final String[] serverFields = serverCN.split("\\.");
+		String name = serverFields[1];
+		String operator = serverFields[2];
+		
+		context.put(LegacyCommonConstants.OWN_CLOUD_NAME, name);
+		context.put(LegacyCommonConstants.OWN_CLOUD_OPERATOR, operator);
 	}
 }

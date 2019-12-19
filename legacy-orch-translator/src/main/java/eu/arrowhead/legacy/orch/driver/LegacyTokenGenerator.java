@@ -60,7 +60,7 @@ public class LegacyTokenGenerator {
 	    Signature signature;
 	    try {
 	      signature = Signature.getInstance("SHA256withRSA", "BC");
-	      signature.initSign((PrivateKey) arrowheadContext.get(LegacyCommonConstants.AUTHORIZATION_PRIVATE_KEY)); //TODO put it into the context
+	      signature.initSign((PrivateKey) arrowheadContext.get(LegacyCommonConstants.AUTHORIZATION_PRIVATE_KEY));
 	    } catch (NoSuchAlgorithmException | NoSuchProviderException e) {
 	      logger.fatal("Signature.getInstance(String) throws exception, code needs to be changed!");
 	      throw new AssertionError("Signature.getInstance(String) throws exception, code needs to be changed!", e);
@@ -78,8 +78,8 @@ public class LegacyTokenGenerator {
 	    if (consumerCloudName != null && consumerCloudOperator != null) {
 	    	c = c.concat(".").concat(consumerCloudName).concat(".").concat(consumerCloudOperator);
 	    } else {
-	    	final String ownCloudName = (String) arrowheadContext.get(LegacyCommonConstants.OWN_CLOUD_NAME); //TODO put it into the context
-	    	final String ownCloudOperator = (String) arrowheadContext.get(LegacyCommonConstants.OWN_CLOUD_OPERATOR); //TODO put it into the context
+	    	final String ownCloudName = (String) arrowheadContext.get(LegacyCommonConstants.OWN_CLOUD_NAME);
+	    	final String ownCloudOperator = (String) arrowheadContext.get(LegacyCommonConstants.OWN_CLOUD_OPERATOR);
 	    	c = c.concat(".").concat(ownCloudName).concat(".").concat(ownCloudOperator);
 	    }
 	    rawTokenInfo.setC(c);
