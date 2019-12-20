@@ -17,6 +17,7 @@ import eu.arrowhead.common.Utilities;
 import eu.arrowhead.common.dto.shared.OrchestrationFormRequestDTO;
 import eu.arrowhead.common.exception.ArrowheadException;
 import eu.arrowhead.common.exception.BadPayloadException;
+import eu.arrowhead.legacy.common.LegacyCommonConstants;
 import eu.arrowhead.legacy.common.model.LegacyServiceRequestForm;
 import eu.arrowhead.legacy.orch.driver.LegacyOrchestratorDriver;
 
@@ -26,8 +27,6 @@ public class LegacyOrchestratorController {
 	
 	//=================================================================================================
 	// members
-	
-	private static final String ORCHESTRATION_INPUT_JSON_KEY_SERVICE_DEFINITION_REQUIREMENT = "serviceDefinitionRequirement";
 	
 	@Autowired
 	private LegacyOrchestratorDriver legacyDriver;
@@ -46,7 +45,7 @@ public class LegacyOrchestratorController {
 	@ResponseBody public ResponseEntity<?> orchestrationProcess(@RequestBody final Map<String,Object> request) {
 		final String requestStr = Utilities.toJson(request);
 		
-		if (request.containsKey(ORCHESTRATION_INPUT_JSON_KEY_SERVICE_DEFINITION_REQUIREMENT)) {
+		if (request.containsKey(LegacyCommonConstants.ORCHESTRATION_INPUT_JSON_KEY_SERVICE_DEFINITION_REQUIREMENT)) {
 			return orchestrationProcess413(requestStr);
 		} else {
 			return orchestrationProcess412(requestStr);

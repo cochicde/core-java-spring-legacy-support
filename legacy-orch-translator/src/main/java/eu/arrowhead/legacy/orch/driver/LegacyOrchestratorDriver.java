@@ -137,7 +137,7 @@ public class LegacyOrchestratorDriver {
 		orchestrationRequest.getOrchestrationFlags().put(Flag.MATCHMAKING, false);
 		
 		final UriComponents uri = (UriComponents) arrowheadContext.get(LegacyCommonConstants.ORCHESTRATOR_ORCHESTRATION_URI);		
-		final ResponseEntity<OrchestrationResponseDTO> response = httpService.sendRequest(uri, HttpMethod.POST, OrchestrationResponseDTO.class, request);
+		final ResponseEntity<OrchestrationResponseDTO> response = httpService.sendRequest(uri, HttpMethod.POST, OrchestrationResponseDTO.class, orchestrationRequest);
 		final OrchestrationResponseDTO dto = response.getBody();
 		
 		//Filter on originally requested interface & generate token if required

@@ -5,6 +5,8 @@ public class LegacyCommonConstants {
 	//=================================================================================================
 	// members
 	
+	public static final String ORCHESTRATION_INPUT_JSON_KEY_SERVICE_DEFINITION_REQUIREMENT = "serviceDefinitionRequirement";
+	
 	public static final String SERVER_ADDRESS = "server.address";
 	public static final String $SERVER_ADDRESS = "${" + SERVER_ADDRESS + "}";
 	public static final String SERVER_PORT = "server.port";

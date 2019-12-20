@@ -183,7 +183,7 @@ public class LegacyModelConverter {
 	//-------------------------------------------------------------------------------------------------
 	public static OrchestrationFormRequestDTO convertLegacyServiceRequestFormToOrchestrationFormRequestDTO(final LegacyServiceRequestForm form) {
 		final SystemRequestDTO requesterSystem = convertLegacyArrowheadSystemToSystemRequestDTO(form.getRequesterSystem());
-		final CloudRequestDTO requesterCloud = convertLegacyArrowheadCloudToCloudRequestDTO(form.getRequesterCloud());
+		final CloudRequestDTO requesterCloud = form.getRequesterCloud() != null ? convertLegacyArrowheadCloudToCloudRequestDTO(form.getRequesterCloud()) : null;
 		
 		final ServiceQueryFormDTO requestedService = new ServiceQueryFormDTO.Builder(form.getRequestedService().getServiceDefinition())
 																			.interfaces() //intentionally ignored
