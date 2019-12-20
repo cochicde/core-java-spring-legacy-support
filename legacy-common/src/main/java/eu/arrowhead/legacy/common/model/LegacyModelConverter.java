@@ -239,6 +239,9 @@ public class LegacyModelConverter {
 			if (orchResult.getSecure() == ServiceSecurityType.TOKEN) {
 				legacyForm.getService().getServiceMetadata().put(LegacyCommonConstants.KEY_SECURITY, LegacyCommonConstants.SECURITY_VALUE_TOKEN);
 			}
+			if (orchResult.getSecure() == ServiceSecurityType.CERTIFICATE) {
+				legacyForm.getService().getServiceMetadata().put(LegacyCommonConstants.KEY_SECURITY, ServiceSecurityType.CERTIFICATE.name().toLowerCase());
+			}
 			legacyForms.add(legacyForm);
 		}
 		
