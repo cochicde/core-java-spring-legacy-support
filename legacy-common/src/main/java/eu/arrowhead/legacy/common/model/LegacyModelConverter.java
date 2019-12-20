@@ -228,6 +228,7 @@ public class LegacyModelConverter {
 			for (final ServiceInterfaceResponseDTO interf : orchResult.getInterfaces()) {
 				interfaces.add(interf.getInterfaceName());
 			}
+			interfaces.add(orchResult.getMetadata().get(LegacyCommonConstants.KEY_LEGACY_INTERFACE));
 			legacyForm.setService(new LegacyArrowheadService(orchResult.getService().getId(), orchResult.getService().getServiceDefinition(), interfaces, orchResult.getMetadata()));
 			legacyForm.setServiceURI(orchResult.getServiceUri());
 			legacyForm.setWarnings(orchResult.getWarnings());
@@ -235,6 +236,7 @@ public class LegacyModelConverter {
 			legacyForm.setSignature(orchResult.getMetadata().get(LegacyCommonConstants.KEY_LEGACY_SIGNATURE));			
 			legacyForm.getService().getServiceMetadata().remove(LegacyCommonConstants.KEY_LEGACY_TOKEN);
 			legacyForm.getService().getServiceMetadata().remove(LegacyCommonConstants.KEY_LEGACY_SIGNATURE);
+			legacyForms.add(legacyForm);
 		}
 		
 		final LegacyOrchestrationResponse legacyResponse = new LegacyOrchestrationResponse();

@@ -152,8 +152,7 @@ public class LegacyOrchestratorDriver {
 					if (result.getMetadata().containsKey(LegacyCommonConstants.KEY_LEGACY_INTERFACE)
 							&& requestedInterfaces.contains(result.getMetadata().get(LegacyCommonConstants.KEY_LEGACY_INTERFACE))) {
 						if (result.getSecure() == ServiceSecurityType.TOKEN) {
-							result = generateLegacyTokenForConsumer412(true, request.getRequesterCloud().getOperator(), request.getRequesterCloud().getCloudName(),
-																	   request.getRequesterSystem().getSystemName(), result);							
+							result = generateLegacyTokenForConsumer412(true, request.getRequesterSystem().getSystemName(), result);							
 						}
 						if (result != null) { //Can be null when token generation failed -> skip provider							
 							providersWithProperInterface.add(result);
@@ -164,11 +163,9 @@ public class LegacyOrchestratorDriver {
 					
 					//Arrowhead v4.1.3 compliant provider 
 					for (final ServiceInterfaceResponseDTO interfaceDTO : result.getInterfaces()) {
-						if (requestedInterfaces.contains(interfaceDTO.getInterfaceName())) {
+						if (requestedInterfaces.contains(interfaceDTO.getInterfaceName()) || requestedInterfaces.contains(result.getMetadata().get(LegacyCommonConstants.KEY_LEGACY_INTERFACE))) {
 							if (result.getSecure() == ServiceSecurityType.TOKEN) {
-								result = generateLegacyTokenForConsumer412(false, request.getRequesterCloud().getOperator(), request.getRequesterCloud().getCloudName(),
-																		   request.getRequesterSystem().getSystemName(), result);
-								
+								result = generateLegacyTokenForConsumer412(false, request.getRequesterSystem().getSystemName(), result);								
 							}
 							providersWithProperInterface.add(result);
 						}
@@ -194,10 +191,11 @@ public class LegacyOrchestratorDriver {
 	// assistant methods
 
 	//-------------------------------------------------------------------------------------------------
-	private OrchestrationResultDTO generateLegacyTokenForConsumer412(final boolean isProvider412, final String consumerCloudOperator, final String consumerCloudName, final String ConsumerSystemName,
-																	 final OrchestrationResultDTO result) {
+	private OrchestrationResultDTO generateLegacyTokenForConsumer412(final boolean isProvider412, final String ConsumerSystemName, final OrchestrationResultDTO result) {
 		if (isProvider412) {			
-			final Entry<String, String> tokenData = legacyTokenGenerator.generateLegacyToken(consumerCloudOperator, consumerCloudName, ConsumerSystemName,
+			final Entry<String, String> tokenData = legacyTokenGenerator.generateLegacyToken((String) arrowheadContext.get(LegacyCommonConstants.OWN_CLOUD_OPERATOR),
+																							 (String) arrowheadContext.get(LegacyCommonConstants.OWN_CLOUD_NAME),
+																							 ConsumerSystemName,
 																							 result.getProvider().getAuthenticationInfo(),
 																							 result.getService().getServiceDefinition(),
 																							 result.getMetadata().get(LegacyCommonConstants.KEY_LEGACY_INTERFACE));			

@@ -77,6 +77,9 @@ public class LegacyOrchestratorAppInitListener extends LegacyAppInitListener {
 		final String scheme = sslProperties.isSslEnabled() ? CommonConstants.HTTPS : CommonConstants.HTTP;
 		final UriComponents srQueryUri = createSRQueryUri(scheme);
 		final SystemResponseDTO orchestrator = getOrchestrationCoreSystemDTO(srQueryUri, scheme);
+		if (orchestrator.getPort() == systemRegistrationProperties.getSystemDomainPort()) {
+			throw new ServiceConfigurationError("Real Orcestrator Core System not found");
+		}
 		context.put(LegacyCommonConstants.ORCHESTRATOR_ORCHESTRATION_URI, Utilities.createURI(scheme, orchestrator.getAddress(), orchestrator.getPort(), CoreSystemService.ORCHESTRATION_SERVICE.getServiceUri()));
 		unregisterOrchestratorFromSR(orchestrator, scheme);
 		registerLegacyOrchestratorTranslator(scheme);
