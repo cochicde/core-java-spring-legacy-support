@@ -1,15 +1,14 @@
 package eu.arrowhead.legacy.orch.driver;
 
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Random;
 import java.util.Set;
 
 import javax.annotation.Resource;
 
+import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.http.HttpStatus;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -244,8 +243,6 @@ public class LegacyOrchestratorDriver {
 	
 	//-------------------------------------------------------------------------------------------------
 	private String randomString() {
-		byte[] array = new byte[150];
-		new Random().nextBytes(array);
-		return new String(array, Charset.forName("UTF-8"));
+		return RandomStringUtils.random(150, true, true);
 	}
 }
