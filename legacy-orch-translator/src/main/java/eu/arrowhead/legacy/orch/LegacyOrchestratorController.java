@@ -45,7 +45,7 @@ public class LegacyOrchestratorController {
 	@ResponseBody public ResponseEntity<?> orchestrationProcess(@RequestBody final Map<String,Object> request) {
 		final String requestStr = Utilities.toJson(request);
 		
-		if (request.containsKey(LegacyCommonConstants.ORCHESTRATION_INPUT_JSON_KEY_SERVICE_DEFINITION_REQUIREMENT)) {
+		if (requestStr.contains(LegacyCommonConstants.ORCHESTRATION_INPUT_JSON_KEY_SERVICE_DEFINITION_REQUIREMENT)) {
 			return orchestrationProcess413(requestStr);
 		} else {
 			return orchestrationProcess412(requestStr);

@@ -78,7 +78,10 @@ public class LegacyOrchestratorDriver {
 		if (request.getOrchestrationFlags().getOrDefault(Flag.ENABLE_INTER_CLOUD, false)) {
 			request.getOrchestrationFlags().put(Flag.ENABLE_INTER_CLOUD, false);
 			logger.debug("Orchestration flag 'ENABLE_INTER_CLOUD=true' is not supported and was changed to false");
-		}		
+		}
+		
+		final List<String> requestedInterfaces = request.getRequestedService().getInterfaceRequirements();
+		request.getRequestedService().setInterfaceRequirements(new ArrayList<>());
 		
 		final boolean originalMatchmakingFlag = request.getOrchestrationFlags().getOrDefault(Flag.MATCHMAKING, false);
 		request.getOrchestrationFlags().put(Flag.MATCHMAKING, false);
@@ -87,11 +90,26 @@ public class LegacyOrchestratorDriver {
 		final ResponseEntity<OrchestrationResponseDTO> response = httpService.sendRequest(uri, HttpMethod.POST, OrchestrationResponseDTO.class, request);
 		final OrchestrationResponseDTO dto = response.getBody();
 		
+		if (requestedInterfaces != null && !requestedInterfaces.isEmpty()) {
+			final List<OrchestrationResultDTO> resultsWithRequestedInterfaces = new ArrayList<>();
+			for (final OrchestrationResultDTO result : dto.getResponse()) {
+				for (final String interf : requestedInterfaces) {
+					if (interf.equalsIgnoreCase(result.getMetadata().get(LegacyCommonConstants.KEY_LEGACY_INTERFACE))) {
+						final ServiceInterfaceResponseDTO interfaceResponseDTO = result.getInterfaces().iterator().next();
+						interfaceResponseDTO.setInterfaceName(result.getMetadata().get(LegacyCommonConstants.KEY_LEGACY_INTERFACE).toUpperCase());
+						result.setInterfaces(List.of(interfaceResponseDTO));
+						resultsWithRequestedInterfaces.add(result);
+					}
+				}
+			}
+			dto.setResponse(resultsWithRequestedInterfaces);
+		}
+
 		if (originalMatchmakingFlag && dto.getResponse().size() > 1) {
 			dto.setResponse(List.of(dto.getResponse().iterator().next()));
 		}
 		
-		List<OrchestrationResultDTO> orchResultsWithLegacyTokenWorkarund = new ArrayList<>();
+		final List<OrchestrationResultDTO> orchResultsWithLegacyTokenWorkarund = new ArrayList<>();
 		
 		for (OrchestrationResultDTO result : dto.getResponse()) {
 			if (result.getMetadata() != null
@@ -178,7 +196,7 @@ public class LegacyOrchestratorDriver {
 			dto.setResponse(List.of(dto.getResponse().iterator().next()));
 		}
 		
-		LegacyOrchestrationResponse legacyResponse = LegacyModelConverter.convertOrchestrationResponseDTOtoLegacyOrchestrationResponse(dto);
+		final LegacyOrchestrationResponse legacyResponse = LegacyModelConverter.convertOrchestrationResponseDTOtoLegacyOrchestrationResponse(dto);
 		if (legacyResponse.getResponse().isEmpty()) {
 			new ResponseEntity<>(org.springframework.http.HttpStatus.NOT_FOUND);
 		}
