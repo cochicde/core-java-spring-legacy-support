@@ -88,29 +88,14 @@ public class LegacyOrchestratorDriver {
 		
 		final UriComponents uri = (UriComponents) arrowheadContext.get(LegacyCommonConstants.ORCHESTRATOR_ORCHESTRATION_URI);		
 		final ResponseEntity<OrchestrationResponseDTO> response = httpService.sendRequest(uri, HttpMethod.POST, OrchestrationResponseDTO.class, request);
-		final OrchestrationResponseDTO dto = response.getBody();
-		
-		if (requestedInterfaces != null && !requestedInterfaces.isEmpty()) {
-			final List<OrchestrationResultDTO> resultsWithRequestedInterfaces = new ArrayList<>();
-			for (final OrchestrationResultDTO result : dto.getResponse()) {
-				for (final String interf : requestedInterfaces) {
-					if (interf.equalsIgnoreCase(result.getMetadata().get(LegacyCommonConstants.KEY_LEGACY_INTERFACE))) {
-						final ServiceInterfaceResponseDTO interfaceResponseDTO = result.getInterfaces().iterator().next();
-						interfaceResponseDTO.setInterfaceName(result.getMetadata().get(LegacyCommonConstants.KEY_LEGACY_INTERFACE).toUpperCase());
-						result.setInterfaces(List.of(interfaceResponseDTO));
-						resultsWithRequestedInterfaces.add(result);
-					}
-				}
-			}
-			dto.setResponse(resultsWithRequestedInterfaces);
-		}
+		final OrchestrationResponseDTO dto = filterOnRequestedInterfaces(requestedInterfaces, response.getBody());		
 
 		if (originalMatchmakingFlag && dto.getResponse().size() > 1) {
 			dto.setResponse(List.of(dto.getResponse().iterator().next()));
 		}
 		
-		final List<OrchestrationResultDTO> orchResultsWithLegacyTokenWorkarund = new ArrayList<>();
-		
+		//Generate token if required
+		final List<OrchestrationResultDTO> orchResultsWithLegacyTokenWorkarund = new ArrayList<>();		
 		for (OrchestrationResultDTO result : dto.getResponse()) {
 			if (result.getMetadata() != null
 					&& result.getMetadata().containsKey(LegacyCommonConstants.KEY_ARROWHEAD_VERSION)
@@ -156,46 +141,37 @@ public class LegacyOrchestratorDriver {
 		
 		final UriComponents uri = (UriComponents) arrowheadContext.get(LegacyCommonConstants.ORCHESTRATOR_ORCHESTRATION_URI);		
 		final ResponseEntity<OrchestrationResponseDTO> response = httpService.sendRequest(uri, HttpMethod.POST, OrchestrationResponseDTO.class, orchestrationRequest);
-		final OrchestrationResponseDTO dto = response.getBody();
-		
-		//Filter on originally requested interface & generate token if required
-		if (requestedInterfaces != null && !requestedInterfaces.isEmpty()) {
-			final List<OrchestrationResultDTO> providersWithProperInterface = new ArrayList<>();
-			for (OrchestrationResultDTO result : dto.getResponse()) {
-				if (result.getMetadata() != null
-						&& result.getMetadata().containsKey(LegacyCommonConstants.KEY_ARROWHEAD_VERSION)
-						&& result.getMetadata().get(LegacyCommonConstants.KEY_ARROWHEAD_VERSION).equalsIgnoreCase(LegacyCommonConstants.ARROWHEAD_VERSION_VALUE_412)) {
-					
-					//Arrowhead v4.1.2 compliant provider
-					if (result.getMetadata().containsKey(LegacyCommonConstants.KEY_LEGACY_INTERFACE)
-							&& requestedInterfaces.contains(result.getMetadata().get(LegacyCommonConstants.KEY_LEGACY_INTERFACE))) {
-						if (result.getSecure() == ServiceSecurityType.TOKEN) {
-							result = generateLegacyTokenForConsumer412(true, request.getRequesterSystem().getSystemName(), result);							
-						}
-						if (result != null) { //Can be null when token generation failed -> skip provider							
-							providersWithProperInterface.add(result);
-						}
-					}
-					
-				} else {
-					
-					//Arrowhead v4.1.3 compliant provider 
-					for (final ServiceInterfaceResponseDTO interfaceDTO : result.getInterfaces()) {
-						if (requestedInterfaces.contains(interfaceDTO.getInterfaceName()) || requestedInterfaces.contains(result.getMetadata().get(LegacyCommonConstants.KEY_LEGACY_INTERFACE))) {
-							if (result.getSecure() == ServiceSecurityType.TOKEN) {
-								result = generateLegacyTokenForConsumer412(false, request.getRequesterSystem().getSystemName(), result);								
-							}
-							providersWithProperInterface.add(result);
-						}
-					}					
-				}
-			}
-			dto.setResponse(providersWithProperInterface);			
-		}
+		final OrchestrationResponseDTO dto = filterOnRequestedInterfaces(requestedInterfaces, response.getBody());	
 		
 		if (originalMatchmakingFlag && dto.getResponse().size() > 1) {
 			dto.setResponse(List.of(dto.getResponse().iterator().next()));
 		}
+		
+		//Generate token if required		
+		final List<OrchestrationResultDTO> orchResultsWithLegacyTokenWorkarund = new ArrayList<>();
+		for (OrchestrationResultDTO result : dto.getResponse()) {
+			if (result.getMetadata() != null
+					&& result.getMetadata().containsKey(LegacyCommonConstants.KEY_ARROWHEAD_VERSION)
+					&& result.getMetadata().get(LegacyCommonConstants.KEY_ARROWHEAD_VERSION).equalsIgnoreCase(LegacyCommonConstants.ARROWHEAD_VERSION_VALUE_412)) {
+				
+				//Arrowhead v4.1.2 compliant provider
+				if (result.getSecure() == ServiceSecurityType.TOKEN) {
+					result = generateLegacyTokenForConsumer412(true, request.getRequesterSystem().getSystemName(), result);							
+				}
+				if (result != null) { //Can be null when token generation failed -> skip provider							
+					orchResultsWithLegacyTokenWorkarund.add(result);
+				}
+								
+			} else {
+				
+				//Arrowhead v4.1.3 compliant provider 
+				if (result.getSecure() == ServiceSecurityType.TOKEN) {
+					result = generateLegacyTokenForConsumer412(false, request.getRequesterSystem().getSystemName(), result);								
+				}
+				orchResultsWithLegacyTokenWorkarund.add(result);					
+			}
+		}
+		dto.setResponse(orchResultsWithLegacyTokenWorkarund);			
 		
 		final LegacyOrchestrationResponse legacyResponse = LegacyModelConverter.convertOrchestrationResponseDTOtoLegacyOrchestrationResponse(dto);
 		if (legacyResponse.getResponse().isEmpty()) {
@@ -258,6 +234,25 @@ public class LegacyOrchestratorDriver {
 			result.getAuthorizationTokens().put(LegacyCommonConstants.DEFAULT_INTERFACE, tokenDataDefaultInterface.getValue());
 			result.getAuthorizationTokens().put(LegacyCommonConstants.DEFAULT_INTERFACE + LegacyCommonConstants.SUFFIX_412_SIGNATURE, tokenDataDefaultInterface.getKey());
 			return result;
+	}
+	
+	//-------------------------------------------------------------------------------------------------
+	private OrchestrationResponseDTO filterOnRequestedInterfaces(final Iterable<String> requestedInterfaces, final OrchestrationResponseDTO dto) {
+		if (requestedInterfaces != null) {
+			final List<OrchestrationResultDTO> resultsWithRequestedInterfaces = new ArrayList<>();
+			for (final OrchestrationResultDTO result : dto.getResponse()) {
+				for (final String interf : requestedInterfaces) {
+					if (interf != null && interf.equalsIgnoreCase(result.getMetadata().get(LegacyCommonConstants.KEY_LEGACY_INTERFACE))) {
+						final ServiceInterfaceResponseDTO interfaceResponseDTO = result.getInterfaces().iterator().next();
+						interfaceResponseDTO.setInterfaceName(result.getMetadata().get(LegacyCommonConstants.KEY_LEGACY_INTERFACE).toUpperCase());
+						result.setInterfaces(List.of(interfaceResponseDTO));
+						resultsWithRequestedInterfaces.add(result);
+					}
+				}
+			}
+			dto.setResponse(resultsWithRequestedInterfaces);
+		}
+		return dto;
 	}
 	
 	//-------------------------------------------------------------------------------------------------
