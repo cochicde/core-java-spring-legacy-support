@@ -126,6 +126,7 @@ public class LegacyOrchestratorDriver {
 				}				
 			} else {
 				//Arrowhead v4.1.3 compliant provider
+				result.getAuthorizationTokens().put(result.getInterfaces().iterator().next().getInterfaceName(), result.getAuthorizationTokens().get(LegacyCommonConstants.DEFAULT_INTERFACE));
 				orchResultsWithLegacyTokenWorkarund.add(result);
 			}
 		}
