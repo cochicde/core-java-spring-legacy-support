@@ -103,8 +103,7 @@ public class LegacyOrchestratorDriver {
 				
 				//Arrowhead v4.1.2 compliant provider
 				if (result.getSecure() == ServiceSecurityType.TOKEN) {					
-					result = generateLegacyTokenForConsumer413(request.getRequesterCloud().getOperator(), request.getRequesterCloud().getName(), request.getRequesterSystem().getSystemName(),
-															   result);
+					result = generateLegacyTokenForConsumer413(request.getRequesterSystem().getSystemName(), result);
 				}
 				if (result != null) { //Can be null when token generation failed -> skip provider
 					orchResultsWithLegacyTokenWorkarund.add(result);
@@ -209,9 +208,10 @@ public class LegacyOrchestratorDriver {
 	}
 	
 	//-------------------------------------------------------------------------------------------------
-	private OrchestrationResultDTO generateLegacyTokenForConsumer413(final String consumerCloudOperator, final String consumerCloudName, final String ConsumerSystemName,
-																	 final OrchestrationResultDTO result) {
-		final Entry<String, String> tokenDataLegacyInterface = legacyTokenGenerator.generateLegacyToken(consumerCloudOperator, consumerCloudName, ConsumerSystemName,
+	private OrchestrationResultDTO generateLegacyTokenForConsumer413(final String ConsumerSystemName, final OrchestrationResultDTO result) {
+		final Entry<String, String> tokenDataLegacyInterface = legacyTokenGenerator.generateLegacyToken((String) arrowheadContext.get(LegacyCommonConstants.OWN_CLOUD_OPERATOR),
+				 																						(String) arrowheadContext.get(LegacyCommonConstants.OWN_CLOUD_NAME),
+				 																						ConsumerSystemName,
 																										result.getProvider().getAuthenticationInfo(),
 																										result.getService().getServiceDefinition(),
 																										result.getMetadata().get(LegacyCommonConstants.KEY_LEGACY_INTERFACE));
@@ -220,10 +220,12 @@ public class LegacyOrchestratorDriver {
 				return null;
 			}
 			
-			final Entry<String, String> tokenDataDefaultInterface = legacyTokenGenerator.generateLegacyToken(consumerCloudOperator, consumerCloudName, ConsumerSystemName,
-					 result.getProvider().getAuthenticationInfo(),
-					 result.getService().getServiceDefinition(),
-					 LegacyCommonConstants.DEFAULT_INTERFACE);
+			final Entry<String, String> tokenDataDefaultInterface = legacyTokenGenerator.generateLegacyToken((String) arrowheadContext.get(LegacyCommonConstants.OWN_CLOUD_OPERATOR),
+																											 (String) arrowheadContext.get(LegacyCommonConstants.OWN_CLOUD_NAME),
+																											 ConsumerSystemName,
+																											 result.getProvider().getAuthenticationInfo(),
+																											 result.getService().getServiceDefinition(),
+																											 LegacyCommonConstants.DEFAULT_INTERFACE);
 			if (tokenDataDefaultInterface == null || tokenDataDefaultInterface.getKey() == null || tokenDataDefaultInterface.getValue() == null) {
 				logger.debug("Token generation with default interface failed for the provider ArrowheadSystem");
 				return null;
