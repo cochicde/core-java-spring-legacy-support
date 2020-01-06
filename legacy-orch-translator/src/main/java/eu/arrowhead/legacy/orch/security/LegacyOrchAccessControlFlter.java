@@ -20,6 +20,10 @@ import eu.arrowhead.legacy.common.security.CoreSystemAccessControlFilter;
 @ConditionalOnProperty(name = CommonConstants.SERVER_SSL_ENABLED, matchIfMissing = true) 
 public class LegacyOrchAccessControlFlter extends CoreSystemAccessControlFilter {
 	
+	//=================================================================================================
+	// assistant methods
+
+	//-------------------------------------------------------------------------------------------------
 	@Override
 	protected void checkClientAuthorized(final String clientCN, final String method, final String requestTarget, final String requestJSON, final Map<String, String[]> queryParams) {
 		super.checkClientAuthorized(clientCN, method, requestTarget, requestJSON, queryParams);
@@ -52,7 +56,8 @@ public class LegacyOrchAccessControlFlter extends CoreSystemAccessControlFilter 
 				final String clientNameFromCN = clientCN.split("\\.", 2)[0];
 				if (!requesterSystemName.equalsIgnoreCase(clientNameFromCN) && !requesterSystemName.replaceAll("_", "").equalsIgnoreCase(clientNameFromCN)) {
 					log.debug("Requester system name and client name from certificate do not match!");
-					throw new AuthException("Requester system name(" + requesterSystemName + ") and client name from certificate (" + clientNameFromCN + ") do not match!", HttpStatus.UNAUTHORIZED.value());
+					throw new AuthException("Requester system name(" + requesterSystemName + ") and client name from certificate (" + clientNameFromCN + ") do not match!",
+											HttpStatus.UNAUTHORIZED.value());
 				}
 			}		
 		}		

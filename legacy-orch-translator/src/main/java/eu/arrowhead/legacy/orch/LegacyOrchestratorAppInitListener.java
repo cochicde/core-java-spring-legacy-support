@@ -69,9 +69,9 @@ public class LegacyOrchestratorAppInitListener extends LegacyAppInitListener {
 		logger.debug("customInit started");
 		
 		@SuppressWarnings("unchecked")
-		final Map<String, Object> context = event.getApplicationContext().getBean(CommonConstants.ARROWHEAD_CONTEXT, Map.class);
+		final Map<String,Object> context = event.getApplicationContext().getBean(CommonConstants.ARROWHEAD_CONTEXT, Map.class);
 		if (sslProperties.isSslEnabled()) {
-			obtainAuthorzationPrivateKey(context); // Necessary for legacy token generation 
+			obtainAuthorizationPrivateKey(context); // Necessary for legacy token generation 
 			obtainOwnCloudInfo(context); // Necessary for legacy token generation
 		}		
 		final String scheme = sslProperties.isSslEnabled() ? CommonConstants.HTTPS : CommonConstants.HTTP;
@@ -80,7 +80,8 @@ public class LegacyOrchestratorAppInitListener extends LegacyAppInitListener {
 		if (orchestrator.getPort() == systemRegistrationProperties.getSystemDomainPort()) {
 			throw new ServiceConfigurationError("Real Orcestrator Core System not found");
 		}
-		context.put(LegacyCommonConstants.ORCHESTRATOR_ORCHESTRATION_URI, Utilities.createURI(scheme, orchestrator.getAddress(), orchestrator.getPort(), CoreSystemService.ORCHESTRATION_SERVICE.getServiceUri()));
+		context.put(LegacyCommonConstants.ORCHESTRATOR_ORCHESTRATION_URI, Utilities.createURI(scheme, orchestrator.getAddress(), orchestrator.getPort(), 
+																							  CoreSystemService.ORCHESTRATION_SERVICE.getServiceUri()));
 		unregisterOrchestratorFromSR(orchestrator, scheme);
 		registerLegacyOrchestratorTranslator(scheme);
 	}
@@ -121,8 +122,8 @@ public class LegacyOrchestratorAppInitListener extends LegacyAppInitListener {
 							   CommonConstants.OP_SERVICE_REGISTRY_UNREGISTER_REQUEST_PARAM_PROVIDER_ADDRESS, providerAddress,
 							   CommonConstants.OP_SERVICE_REGISTRY_UNREGISTER_REQUEST_PARAM_PROVIDER_PORT, String.valueOf(providerPort)};
 		
-		final UriComponents srUnregisterUri = Utilities.createURI(scheme, systemRegistrationProperties.getServiceRegistryAddress(), systemRegistrationProperties.getServiceRegistryPort(), srUnregisterUriSrting,
-																  queryParam);
+		final UriComponents srUnregisterUri = Utilities.createURI(scheme, systemRegistrationProperties.getServiceRegistryAddress(), systemRegistrationProperties.getServiceRegistryPort(),
+																  srUnregisterUriSrting, queryParam);
 		httpService.sendRequest(srUnregisterUri, HttpMethod.DELETE, Void.class);
 	}
 	
@@ -131,7 +132,8 @@ public class LegacyOrchestratorAppInitListener extends LegacyAppInitListener {
 		logger.debug("unregisterOrchestratorFromSR started...");
 		
 		final String srRegisterUriSrting = CommonConstants.SERVICE_REGISTRY_URI + LegacyCommonConstants.OP_SERVICE_REGISTRY_REGISTER_URI;
-		final UriComponents srRegisterUri = Utilities.createURI(scheme, systemRegistrationProperties.getServiceRegistryAddress(), systemRegistrationProperties.getServiceRegistryPort(), srRegisterUriSrting);
+		final UriComponents srRegisterUri = Utilities.createURI(scheme, systemRegistrationProperties.getServiceRegistryAddress(), systemRegistrationProperties.getServiceRegistryPort(),
+															    srRegisterUriSrting);
 		
 		final SystemRequestDTO systemRequestDTO = new SystemRequestDTO();
 		systemRequestDTO.setSystemName(CoreSystem.ORCHESTRATOR.name().toLowerCase());
@@ -152,7 +154,7 @@ public class LegacyOrchestratorAppInitListener extends LegacyAppInitListener {
 	}
 	
 	//-------------------------------------------------------------------------------------------------
-	private void obtainAuthorzationPrivateKey(final Map<String, Object> context) {
+	private void obtainAuthorizationPrivateKey(final Map<String,Object> context) {
 		logger.debug("obtainAuthorzationPrivateKey started...");
 		
 		Assert.isTrue(sslProperties.isSslEnabled(), "SSL is not enabled.");
@@ -176,14 +178,14 @@ public class LegacyOrchestratorAppInitListener extends LegacyAppInitListener {
 			final PrivateKey privateKey = Utilities.getPrivateKey(keyStore, sslProperties.getKeyPassword());
 			context.put(LegacyCommonConstants.AUTHORIZATION_PRIVATE_KEY, privateKey);
 			
-		} catch (NoSuchAlgorithmException | CertificateException | IOException | KeyStoreException ex) {
+		} catch (final NoSuchAlgorithmException | CertificateException | IOException | KeyStoreException ex) {
 			throw new AuthException("Obtaining Authorization privet key failed: " + ex.getMessage());
 		}
 		
 	}
 	
 	//-------------------------------------------------------------------------------------------------
-	private void obtainOwnCloudInfo(final Map<String, Object> context) {
+	private void obtainOwnCloudInfo(final Map<String,Object> context) {
 		Assert.isTrue(sslProperties.isSslEnabled(), "SSL is not enabled.");
 		
 		final String serverCN = (String) context.get(CommonConstants.SERVER_COMMON_NAME);

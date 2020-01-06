@@ -32,9 +32,9 @@ public class LegacyOrchestrationForm implements Serializable {
 	public String getAuthorizationToken() { return authorizationToken; }
 	public String getSignature() { return signature; }
 	public List<OrchestratorWarnings> getWarnings() { return warnings; }
-	public void setService(final LegacyArrowheadService service) { this.service = service; }
-	
+
 	//-------------------------------------------------------------------------------------------------
+	public void setService(final LegacyArrowheadService service) { this.service = service; }
 	public void setProvider(final LegacyArrowheadSystem provider) { this.provider = provider; }
 	public void setServiceURI(final String serviceURI) { this.serviceURI = serviceURI; }
 	public void setInstruction(final String instruction) { this.instruction = instruction; }

@@ -27,5 +27,4 @@ public class LegacyPreferredProvider {
 	//-------------------------------------------------------------------------------------------------
 	public void setProviderSystem(final LegacyArrowheadSystem providerSystem) { this.providerSystem = providerSystem; }
 	public void setProviderCloud(final LegacyArrowheadCloud providerCloud) { this.providerCloud = providerCloud; }
-
 }

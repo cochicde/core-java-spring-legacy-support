@@ -40,5 +40,4 @@ public class LegacyArrowheadCloud implements Serializable {
 	public void setGatekeeperServiceURI(final String gatekeeperServiceURI) { this.gatekeeperServiceURI = gatekeeperServiceURI; }
 	public void setAuthenticationInfo(final String authenticationInfo) { this.authenticationInfo = authenticationInfo; }
 	public void setSecure(final Boolean secure) { this.secure = secure; }
-		
 }

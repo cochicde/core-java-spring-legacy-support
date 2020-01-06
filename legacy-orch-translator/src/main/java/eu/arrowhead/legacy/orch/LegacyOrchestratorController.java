@@ -9,7 +9,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import eu.arrowhead.common.CommonConstants;
@@ -42,7 +41,7 @@ public class LegacyOrchestratorController {
 	
 	//-------------------------------------------------------------------------------------------------
 	@PostMapping(path = CommonConstants.OP_ORCH_PROCESS, consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-	@ResponseBody public ResponseEntity<?> orchestrationProcess(@RequestBody final Map<String,Object> request) {
+	public ResponseEntity<?> orchestrationProcess(@RequestBody final Map<String,Object> request) {
 		final String requestStr = Utilities.toJson(request);
 		
 		if (requestStr.contains(LegacyCommonConstants.ORCHESTRATION_INPUT_JSON_KEY_SERVICE_DEFINITION_REQUIREMENT)) {

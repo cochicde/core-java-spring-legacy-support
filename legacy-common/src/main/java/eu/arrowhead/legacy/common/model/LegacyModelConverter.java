@@ -126,11 +126,11 @@ public class LegacyModelConverter {
 	
 	//-------------------------------------------------------------------------------------------------
 	public static ServiceQueryFormDTO convertLegacyServiceQueryFormToServiceQueryFormDTO(final LegacyServiceQueryFrom form) {
-		
 		final Map<String,String> metadata = form.getService().getServiceMetadata();
 		final ServiceQueryFormDTO.Builder builder = new ServiceQueryFormDTO.Builder(form.getService().getServiceDefinition())
 															   	   		   .version(form.getVersion())
 															   	   		   .pingProviders(form.isPingProviders());
+
 		if (metadata.containsKey(LegacyCommonConstants.KEY_SECURITY)) {
 			builder.security(metadata.get(LegacyCommonConstants.KEY_SECURITY).equalsIgnoreCase(LegacyCommonConstants.SECURITY_VALUE_TOKEN) ? 
 							 ServiceSecurityType.TOKEN : ServiceSecurityType.CERTIFICATE);
@@ -289,6 +289,7 @@ public class LegacyModelConverter {
 			preferredProviders[index] = providerDataDTO;
 			index++;
 		}
+		
 		return preferredProviders;
 	}
 

@@ -43,17 +43,19 @@ public class LegacyTokenGenerator {
 	private ObjectMapper objectMapper;
 	
 	private final Logger logger = LogManager.getLogger(LegacyTokenGenerator.class);
-	
+
+	//=================================================================================================
+	// methods
 	
 	//-------------------------------------------------------------------------------------------------
-	public Entry<String, String> generateLegacyToken(final String consumerCloudOperator, final String consumerCloudName, final String ConsumerSystemName, final String providerAuthInfo, 
+	public Entry<String,String> generateLegacyToken(final String consumerCloudOperator, final String consumerCloudName, final String consumerSystemName, final String providerAuthInfo, 
 													 final String serviceDefinition, final String serviceInterface) {
 		// Cryptographic object initializations
 		Security.addProvider(new BouncyCastleProvider());
 	    Cipher cipher;
 	    try {
 	    	cipher = Cipher.getInstance("RSA/NONE/PKCS1Padding", "BC");
-	    } catch (NoSuchAlgorithmException | NoSuchPaddingException | NoSuchProviderException e) {
+	    } catch (final NoSuchAlgorithmException | NoSuchPaddingException | NoSuchProviderException e) {
 	    	logger.fatal("Cipher.getInstance(String) throws exception, code needs to be changed!");
 	    	throw new AssertionError("Cipher.getInstance(String) throws exception, code needs to be changed!", e);
 	    }
@@ -61,7 +63,7 @@ public class LegacyTokenGenerator {
 	    try {
 	      signature = Signature.getInstance("SHA256withRSA", "BC");
 	      signature.initSign((PrivateKey) arrowheadContext.get(LegacyCommonConstants.AUTHORIZATION_PRIVATE_KEY));
-	    } catch (NoSuchAlgorithmException | NoSuchProviderException e) {
+	    } catch (final NoSuchAlgorithmException | NoSuchProviderException e) {
 	      logger.fatal("Signature.getInstance(String) throws exception, code needs to be changed!");
 	      throw new AssertionError("Signature.getInstance(String) throws exception, code needs to be changed!", e);
 	    } catch (final InvalidKeyException e) {
@@ -74,7 +76,7 @@ public class LegacyTokenGenerator {
 	    final RawTokenInfo rawTokenInfo = new RawTokenInfo();
 	    
 	    // Set consumer info string
-	    String c = ConsumerSystemName;
+	    String c = consumerSystemName;
 	    if (consumerCloudName != null && consumerCloudOperator != null) {
 	    	c = c.concat(".").concat(consumerCloudName).concat(".").concat(consumerCloudOperator);
 	    } else {
@@ -114,7 +116,6 @@ public class LegacyTokenGenerator {
 			final byte[] sigBytes = signature.sign();
 			signatureString = Base64.getEncoder().encodeToString(sigBytes);
 			tokenString = Base64.getEncoder().encodeToString(tokenBytes);
-			
 		} catch (final Exception ex) {
 			logger.debug("Cipher or Signature class throws public key specific exception: " + ex.getMessage());
 		}		
@@ -125,8 +126,8 @@ public class LegacyTokenGenerator {
 	//=================================================================================================
 	// nested class
 	
+	//-------------------------------------------------------------------------------------------------
 	public class RawTokenInfo {
-		
 		private String s;
 		private String c;
 		private Long e;

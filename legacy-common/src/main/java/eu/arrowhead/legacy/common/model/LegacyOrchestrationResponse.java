@@ -21,5 +21,4 @@ public class LegacyOrchestrationResponse implements Serializable {
 
 	//-------------------------------------------------------------------------------------------------
 	public void setResponse(final List<LegacyOrchestrationForm> response) { this.response = response; }
-	
 }
