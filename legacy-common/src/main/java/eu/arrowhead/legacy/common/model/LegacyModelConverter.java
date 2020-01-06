@@ -192,6 +192,8 @@ public class LegacyModelConverter {
 																			.pingProviders(form.getOrchestrationFlags().getOrDefault(CommonConstants.ORCHESTRATON_FLAG_PING_PROVIDERS, false))
 																			.build();
 		
+		requestedService.getMetadataRequirements().remove(LegacyCommonConstants.KEY_SECURITY);
+		
 		if (form.getRequestedService().getServiceMetadata().containsKey(LegacyCommonConstants.KEY_MIN_VERSION)
 				|| form.getRequestedService().getServiceMetadata().containsKey(LegacyCommonConstants.KEY_MAX_VERSION)) {
 			
@@ -205,7 +207,9 @@ public class LegacyModelConverter {
 				maxVersion = Utilities.isEmpty(maxVersionStr) ? null : Integer.parseInt(maxVersionStr);
 			} catch (final NumberFormatException ex) {} // intentionally ignored			
 			requestedService.setMinVersionRequirement(minVersion);
-			requestedService.setMaxVersionRequirement(maxVersion);	
+			requestedService.setMaxVersionRequirement(maxVersion);
+			requestedService.getMetadataRequirements().remove(LegacyCommonConstants.KEY_MIN_VERSION);
+			requestedService.getMetadataRequirements().remove(LegacyCommonConstants.KEY_MAX_VERSION);
 		}
 		
 		return new OrchestrationFormRequestDTO.Builder(requesterSystem)
