@@ -13,10 +13,12 @@ public class LegacyServiceRegistryEntry implements Serializable {
 	private Long id;
 	private LegacyArrowheadService providedService;
 	private LegacyArrowheadSystem provider;
-	private String serviceUri;
+	private String serviceURI;
 	private Boolean udp;
 	private LocalDateTime endOfValidity;
 	private Integer version = 1;
+	private Integer ttl = 0;
+	private String metadata;
 
 	//=================================================================================================
 	// methods
@@ -25,17 +27,21 @@ public class LegacyServiceRegistryEntry implements Serializable {
 	public Long getId() { return id; }
 	public LegacyArrowheadService getProvidedService() { return providedService; }
 	public LegacyArrowheadSystem getProvider() { return provider; }
-	public String getServiceUri() { return serviceUri; }
+	public String getServiceURI() { return serviceURI; }
 	public Boolean getUdp() { return udp; }
 	public LocalDateTime getEndOfValidity() { return endOfValidity; }
 	public Integer getVersion() { return version; }
+	public Integer getTtl() { return ttl; }
+	public String getMetadata() { return metadata; }
 	
 	//-------------------------------------------------------------------------------------------------
 	public void setId(final Long id) { this.id = id; }
 	public void setProvidedService(final LegacyArrowheadService providedService) { this.providedService = providedService; }
 	public void setProvider(final LegacyArrowheadSystem provider) { this.provider = provider; }
-	public void setServiceUri(final String serviceUri) { this.serviceUri = serviceUri; }
+	public void setServiceURI(final String serviceURI) { this.serviceURI = serviceURI; }
 	public void setUdp(final Boolean udp) { this.udp = udp; }
 	public void setEndOfValidity(final LocalDateTime endOfValidity) { this.endOfValidity = endOfValidity; }
 	public void setVersion(final Integer version) { this.version = version; }
+	public void setTtl(final Integer ttl) { this.ttl = ttl; }
+	public void setMetadata(final String metadata) { this.metadata = metadata; }
 }

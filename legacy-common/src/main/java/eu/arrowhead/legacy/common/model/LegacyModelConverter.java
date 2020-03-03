@@ -92,7 +92,7 @@ public class LegacyModelConverter {
 		entry.setId(dto.getId());
 		entry.setProvidedService(providedService);
 		entry.setProvider(provider);
-		entry.setServiceUri(dto.getServiceUri());
+		entry.setServiceURI(dto.getServiceUri());
 		entry.setUdp(false);
 		entry.setVersion(dto.getVersion());
 		entry.setEndOfValidity(Utilities.isEmpty(dto.getEndOfValidity()) ? null : convertUTCSTringToLocalDateTime(dto.getEndOfValidity()));
@@ -112,12 +112,14 @@ public class LegacyModelConverter {
 		final ServiceRegistryRequestDTO dto = new ServiceRegistryRequestDTO();
 		dto.setServiceDefinition(entry.getProvidedService().getServiceDefinition());
 		dto.setProviderSystem(provider);
-		dto.setServiceUri(entry.getServiceUri());
+		dto.setServiceUri(entry.getServiceURI());
 		dto.setVersion(entry.getVersion());
 		dto.setSecure(calculateSecurityType(entry.getProvidedService().getServiceMetadata()));
 		entry.getProvidedService().getServiceMetadata().remove(LegacyCommonConstants.KEY_SECURITY);
 		entry.getProvidedService().getServiceMetadata().put(LegacyCommonConstants.KEY_LEGACY_INTERFACE, entry.getProvidedService().getInterfaces().iterator().next());
-		dto.setInterfaces(List.of(LegacyCommonConstants.DEFAULT_INTERFACE));
+		List<String> interfaceList = new ArrayList<String>();
+		interfaceList.addAll(entry.getProvidedService().getInterfaces());
+		dto.setInterfaces(interfaceList);
 		dto.setMetadata(entry.getProvidedService().getServiceMetadata());
 		dto.setEndOfValidity(entry.getEndOfValidity() == null ? null : convertEndOfValidityToUTCString(entry.getEndOfValidity()));
 		
@@ -186,7 +188,7 @@ public class LegacyModelConverter {
 		final CloudRequestDTO requesterCloud = form.getRequesterCloud() != null ? convertLegacyArrowheadCloudToCloudRequestDTO(form.getRequesterCloud()) : null;
 		
 		final ServiceQueryFormDTO requestedService = new ServiceQueryFormDTO.Builder(form.getRequestedService().getServiceDefinition())
-																			.interfaces() //intentionally ignored
+																			.interfaces(form.getRequestedService().getInterfaces().toArray(new String[form.getRequestedService().getInterfaces().size()])) //intentionally NOT ignored
 																			.security(calculateSecurityType(form.getRequestedService().getServiceMetadata()))
 																			.metadata(form.getRequestedService().getServiceMetadata())
 																			.pingProviders(form.getOrchestrationFlags().getOrDefault(CommonConstants.ORCHESTRATON_FLAG_PING_PROVIDERS, false))
